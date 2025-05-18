@@ -1,7 +1,19 @@
 #!/usr/bin/env python
 """Django's command-line utility for administrative tasks."""
+
+import os
+import django
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "LifeOS.settings")
+django.setup()
+
 import os
 import sys
+from django.conf import settings
+
+if not settings.configured:
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'LifeOS.settings')
+    settings.configure()
 
 
 def main():

@@ -1,5 +1,5 @@
 from django.db import models
-from rest_framework_jwt.utils import jwt_decode_handler
+
 
 class BaseModel(models.Model):
     """为模型类补充字段"""
@@ -11,26 +11,8 @@ class BaseModel(models.Model):
         abstract = True
 
 
-def jwt_response_payload_handler(token, user=None, request=None):
-    """
-    自定义jwt认证成功后返回数据
-    """
-    return{
-        'token': token,
-        'user_id': user.id,
-        'username': user.username,
-        'name': user.name
-    }
-
-
-# 获取用户信息
-def GetTokenUser(request):
-    try:
-        token = request.META.get("HTTP_AUTHORIZATION")
-        if not token:
-            return
-        jwt_token = token.split(" ")[1]
-        token_user = jwt_decode_handler(jwt_token)
-    except Exception as e:
-        return e
-    return token_user
+def get_token_user(request):
+    # 示例实现逻辑
+    token = request.META.get('HTTP_AUTHORIZATION', '').split(' ').pop() if request.META.get('HTTP_AUTHORIZATION', '') else None
+    # 此处添加解析 token 并返回用户对象的逻辑
+    return None  # 默认返回 None 或者模拟用户
