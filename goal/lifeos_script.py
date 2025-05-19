@@ -204,7 +204,9 @@ def simulate(value_system_priority, action_plans):
                 'action_plan': action_plan
             }
         )
-
+        print(type(cumulative_lifemeaning))  # 确认其类型是否为期望的类实例
+        if not hasattr(cumulative_lifemeaning, 'previous_lifemeanings'):
+            raise ValueError("cumulative_lifemeaning 不是期望的类实例")
         cumulative_lifemeaning.previous_lifemeanings.set(previous_lifemeanings)
         cumulative_lifemeaning.save()
 
@@ -239,7 +241,12 @@ def simulate(value_system_priority, action_plans):
                 # 找到对应ValueGoal的索引以获取正确的衰减因子
                 goal = ValueGoal.objects.get(name=goal_name)
                 goal_index = list(value_system_priority.values.all()).index(goal)
-                decay_factor = value_system_priority.decay_factors[goal_index]
+                # 添加索引边界检查
+                if goal_index < len(value_system_priority.decay_factors):
+                    decay_factor = value_system_priority.decay_factors[goal_index]
+                else:
+                    # 可选：记录日志或设置默认值
+                    decay_factor = 0.0  # 或者其他合适的默认衰减因子
 
                 # 计算累计贡献：上一周期累计值 * 衰减因子 + 当前周期贡献
                 cumulative_goal_contributions[goal_name] = previous_contributions.get(goal_name, 0) * decay_factor + contribution

@@ -5,15 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0ca0a285-a183-49cf-adf5-7354d2f6ca6c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/goal/migrations/0002_cumulativelifemeaning_accumulated_meaning_and_more.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/goal/migrations/0003_alter_cumulativelifemeaning_action_plan.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/goal/migrations/0004_alter_cumulativelifemeaning_action_plan_and_more.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/goal/migrations/0005_cumulativelifemeaning_life_meaning_history.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/LifeOS/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/LifeOS/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/goal/lifeos_script.py" beforeDir="false" afterPath="$PROJECT_DIR$/goal/lifeos_script.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/goal/migrations/0001_initial.py" beforeDir="false" afterPath="$PROJECT_DIR$/goal/migrations/0001_initial.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/goal/migrations/0002_remove_action_create_time_remove_action_update_time_and_more.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/goal/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/goal/models.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
