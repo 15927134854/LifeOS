@@ -75,7 +75,7 @@
 <script>
     // 在页面加载时获取 simulation_output.json 数据
     window.onload = function() {
-        fetch('simulation_output.json')
+        fetch('goal/simulation_output.json')
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`Network response was not ok: ${response.statusText}`);
@@ -152,7 +152,7 @@
         // 添加网格线
         svg.append("g")
             .attr("class", "grid")
-            .call(makeGridLines(y)
+            .call(makeGridLines(y, width)  // 传递 width 参数
                 .tickSize(-width)
                 .tickFormat("")
             );
@@ -204,7 +204,7 @@
     }
 
     // 创建网格线
-    function makeGridLines(scale) {
+    function makeGridLines(scale, width) {  // 添加 width 参数
         return d3.axisLeft(scale)
             .tickSize(-width)
             .tickFormat("");
