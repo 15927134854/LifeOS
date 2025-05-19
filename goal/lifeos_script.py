@@ -131,11 +131,11 @@ def build_meta_actions(values_data, value_goals):
 def build_action_plans(meta_actions, num_cycles):
     action_plans = []
     for cycle in range(num_cycles):
-        if len(meta_actions) < 3:
+        if len(meta_actions) < 5:
             print("错误: 元行动数量不足，无法构建行动计划。")
             break
 
-        selected_meta_actions = random.sample(meta_actions, random.randint(3, 5))
+        selected_meta_actions = random.sample(meta_actions, random.randint(8, 12))  # 增加动作数量
         actions = []
 
         for meta_action in selected_meta_actions:
@@ -145,8 +145,8 @@ def build_action_plans(meta_actions, num_cycles):
             actual_start_at = None
             actual_end_at = None
             status = random.choice(['未开始', '进行中', '已完成'])
-            ac = random.uniform(1, meta_action.pv)
-            ev = random.uniform(1, ac)
+            ac = random.uniform(0.5, meta_action.pv * 1.2)  # 更广泛的评分范围
+            ev = random.uniform(0.3, ac)
             achievement_rate = ev / float(meta_action.pv)
             notes = None
 
@@ -312,10 +312,10 @@ if __name__ == "__main__":
     meta_actions = build_meta_actions(values_data, value_goals)
 
     # 构建行动计划
-    num_cycles = 5
+    num_cycles = random.randint(20, 30)  # 增加模拟周期数
     action_plans = build_action_plans(meta_actions, num_cycles)
 
-    # 进行仿真
+    # 运行仿真
     life_meaning_data, cumulative_life_meaning_data, life_meaning_by_goal, cumulative_life_meaning_by_goal, num_cycles = simulate(
         value_system_priority, action_plans)
 
@@ -324,50 +324,20 @@ if __name__ == "__main__":
     print("每个价值目标的人生意义贡献:", life_meaning_by_goal)
     print("每个价值目标的累计人生意义贡献:", cumulative_life_meaning_by_goal)
 
-    # 数据可视化部分
-    import matplotlib.pyplot as plt
+    # 生成用于D3.js可视化的数据结构
+    output_data = {
+        "life_meaning": life_meaning_data,
+        "cumulative_life_meaning": cumulative_life_meaning_data,
+        "life_meaning_by_goal": [
+            {**{k: float(v) for k, v in item.items()}} for item in life_meaning_by_goal
+        ],
+        "cumulative_life_meaning_by_goal": [
+            {**{k: float(v) for k, v in item.items()}} for item in cumulative_life_meaning_by_goal
+        ]
+    }
 
-    # Specify the path to a font that supports CJK characters, e.g., 'SimHei'
-    plt.rcParams['font.sans-serif'] = ['SimHei']
-    plt.rcParams['axes.unicode_minus'] = False
-    import numpy as np
-    import seaborn as sns
-    sns.set(style="whitegrid")
+    # 写入simulation_output.json文件
+    with open('simulation_output.json', 'w', encoding='utf-8') as f:
+        json.dump(output_data, f, ensure_ascii=False, indent=4)
 
-    # 极坐标图函数
-    def plot_radar_chart(labels, values, title):
-        angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
-        values += values[:1]  # 闭合图形
-        angles += angles[:1]
-
-        fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
-        ax.fill(angles, values, color='red', alpha=0.25)
-        ax.plot(angles, values, color='red', linewidth=2)
-        ax.set_xticks(angles[:-1], labels)
-        ax.set_title(title)
-        ax.grid(True)
-        plt.tight_layout()
-        plt.show()
-
-    # 1. 人生意义趋势雷达图
-    if life_meaning_data:
-        labels = [f'Cycle {i+1}' for i in range(len(life_meaning_data))]
-        values = life_meaning_data
-        plot_radar_chart(labels, values, 'Life Meaning Trend (Radar Chart)')
-
-    # 2. 累计人生意义趋势雷达图
-    if cumulative_life_meaning_data:
-        labels = [f'Cycle {i+1}' for i in range(len(cumulative_life_meaning_data))]
-        values = cumulative_life_meaning_data
-        plot_radar_chart(labels, values, 'Cumulative Life Meaning Trend (Radar Chart)')
-
-    # 3. 每个价值目标的贡献雷达图
-    if life_meaning_by_goal:
-        goal_names = list(life_meaning_by_goal[0].keys())
-        goal_values = [sum(d[goal] for d in life_meaning_by_goal if goal in d) for goal in goal_names]
-        plot_radar_chart(goal_names, goal_values, 'Contribution by Value Goal (Radar Chart)')
-
-    # 4. 累计价值目标贡献雷达图
-    if cumulative_life_meaning_by_goal:
-        cumulative_goal_values = [sum(d[goal] for d in cumulative_life_meaning_by_goal if goal in d) for goal in goal_names]
-        plot_radar_chart(goal_names, cumulative_goal_values, 'Cumulative Contribution by Value Goal (Radar Chart)')
+    print("数据已导出到 simulation_output.json")

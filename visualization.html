@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人生意义数据可视化</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        svg {
+            background-color: #f9f9f9;
+        }
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+        .grid path,
+        .grid line {
+            stroke: #ddd;
+            stroke-opacity: 0.7;
+            shape-rendering: crispEdges;
+        }
+
+        .line {
+            fill: none;
+            stroke-width: 2px;
+            stroke-opacity: 0.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .dot {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: 120px;
+            height: auto;
+            padding: 5px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+
+<h1>人生意义数据可视化</h1>
+
+<!-- 图表容器 -->
+<div id="charts">
+    <h2>人生意义趋势</h2>
+    <svg id="life-meaning-trend" width="900" height="500"></svg>
+
+    <h2>累计人生意义趋势</h2>
+    <svg id="cumulative-life-meaning-trend" width="900" height="500"></svg>
+
+    <h2>每个价值目标的认证意义贡献</h2>
+    <svg id="value-goal-contribution" width="900" height="500"></svg>
+
+    <h2>每个价值目标的累计人生意义贡献</h2>
+    <svg id="cumulative-value-goal-contribution" width="900" height="500"></svg>
+</div>
+
+<script>
+    // 在页面加载时获取 simulation_output.json 数据
+    window.onload = function() {
+        fetch('simulation_output.json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Network response was not ok: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Loaded data:', data);  // 添加日志输出
+
+                // 解析数据
+                const lifeMeaningData = data.life_meaning || [];
+                const cumulativeLifeMeaningData = data.cumulative_life_meaning || [];
+                const lifeMeaningByGoal = data.life_meaning_by_goal || [];
+                const cumulativeLifeMeaningByGoal = data.cumulative_life_meaning_by_goal || [];
+
+                // 绘制折线图
+                drawLineChart('#life-meaning-trend', lifeMeaningData, '人生意义趋势');
+                drawLineChart('#cumulative-life-meaning-trend', cumulativeLifeMeaningData, '累计人生意义趋势');
+
+                // 绘制柱状图
+                if (lifeMeaningByGoal.length > 0) {
+                    drawBarChart('#value-goal-contribution', lifeMeaningByGoal, '每个价值目标的认证意义贡献');
+                } else {
+                    console.error('Invalid or missing life_meaning_by_goal data');
+                }
+
+                if (cumulativeLifeMeaningByGoal.length > 0) {
+                    drawBarChart('#cumulative-value-goal-contribution', cumulativeLifeMeaningByGoal, '每个价值目标的累计人生意义贡献');
+                } else {
+                    console.error('Invalid or missing cumulative_life_meaning_by_goal data');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading JSON data:', error);
+                alert(`Failed to load visualization data: ${error.message}`);
+            });
+    };
+
+    // 绘制折线图函数
+    function drawLineChart(selector, data, title) {
+        const margin = {top: 20, right: 20, bottom: 40, left: 60};
+        const width = 900 - margin.left - margin.right;
+        const height = 500 - margin.top - margin.bottom;
+
+        const x = d3.scaleLinear()
+            .domain([0, data.length - 1])
+            .range([0, width]);
+
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(data)]).nice()
+            .range([height, 0]);
+
+        const line = d3.line()
+            .x((d, i) => x(i))
+            .y(d => y(d));
+
+        const svg = d3.select(selector)
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // 添加 X 轴
+        svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x).ticks(data.length));
+
+        // 添加 Y 轴
+        svg.append("g")
+            .attr("class", "axis")
+            .call(d3.axisLeft(y));
+
+        // 添加网格线
+        svg.append("g")
+            .attr("class", "grid")
+            .call(makeGridLines(y)
+                .tickSize(-width)
+                .tickFormat("")
+            );
+
+        // 绘制折线
+        svg.append("path")
+            .datum(data)
+            .attr("class", "line")
+            .attr("d", line)
+            .style("stroke", "steelblue");
+
+        // 添加数据点
+        svg.selectAll(".dot")
+            .data(data)
+            .enter().append("circle")
+            .attr("class", "dot")
+            .attr("cx", (d, i) => x(i))
+            .attr("cy", d => y(d))
+            .attr("r", 4)
+            .on("mouseover", function(event, d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html(`값: ${d}`)
+                    .style("left", (event.pageX + 5) + "px")
+                    .style("top", (event.pageY - 28) + "px")
+                    .style("transform", "scale(1.1)");
+            })
+            .on("mouseout", function(d) {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+                d3.select(this)
+                    .style("transform", "scale(1)");
+            });
+
+        // 添加标题
+        svg.append("text")
+            .attr("x", (width / 2))
+            .attr("y", 0 - margin.top / 2)
+            .attr("text-anchor", "middle")
+            .style("font-size", "18px")
+            .text(title);
+
+        // 添加提示框
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+    }
+
+    // 创建网格线
+    function makeGridLines(scale) {
+        return d3.axisLeft(scale)
+            .tickSize(-width)
+            .tickFormat("");
+    }
+
+    // 绘制柱状图函数
+    function drawBarChart(selector, dataArray, title) {
+        const margin = {top: 20, right: 20, bottom: 80, left: 60};
+        const width = 900 - margin.left - margin.right;
+        const height = 500 - margin.top - margin.bottom;
+
+        // 合并所有对象的数据，计算每个类别的总和
+        const mergedData = {};
+        dataArray.forEach(entry => {
+            Object.entries(entry).forEach(([key, value]) => {
+                if (!mergedData[key]) {
+                    mergedData[key] = 0;
+                }
+                mergedData[key] += value;
+            });
+        });
+
+        const data = Object.keys(mergedData).map(key => ({
+            category: key,
+            value: mergedData[key]
+        }));
+
+        const x = d3.scaleBand()
+            .domain(data.map(d => d.category))
+            .range([0, width])
+            .padding(0.1);
+
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.value)]).nice()
+            .range([height, 0]);
+
+        const svg = d3.select(selector)
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // 添加 X 轴
+        svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x))
+          .selectAll("text")
+            .attr("transform", "rotate(-45)")
+            .style("text-anchor", "end");
+
+        // 添加 Y 轴
+        svg.append("g")
+            .attr("class", "axis")
+            .call(d3.axisLeft(y));
+
+        // 添加网格线
+        svg.append("g")
+            .attr("class", "grid")
+            .call(makeGridLines(y)
+                .tickSize(-width)
+                .tickFormat("")
+            );
+
+        // 绘制柱形
+        const bars = svg.selectAll(".bar")
+            .data(data)
+            .enter().append("rect")
+            .attr("class", "bar")
+            .attr("x", d => x(d.category))
+            .attr("y", d => y(d.value))
+            .attr("width", x.bandwidth())
+            .attr("height", d => height - y(d.value))
+            .style("fill", "steelblue")
+            .on("mouseover", function(event, d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html(`类别: ${d.category}<br/>값: ${d.value.toFixed(2)}`)
+                    .style("left", (event.pageX + 5) + "px")
+                    .style("top", (event.pageY - 28) + "px")
+                    .style("transform", "scale(1.1)");
+            })
+            .on("mouseout", function(d) {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+                d3.select(this)
+                    .style("transform", "scale(1)");
+            });
+
+        // 添加标题
+        svg.append("text")
+            .attr("x", (width / 2))
+            .attr("y", 0 - margin.top / 2)
+            .attr("text-anchor", "middle")
+            .style("font-size", "18px")
+            .text(title);
+
+        // 添加提示框
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+    }
+</script>
+</body>
+</html>
