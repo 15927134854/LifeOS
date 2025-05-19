@@ -363,5 +363,6 @@ if __name__ == "__main__":
     json_path = "values.json"
     if not os.path.exists(json_path):
         raise FileNotFoundError(f"找不到文件: {json_path}")
-    with open(json_path) as f:
+    with open(json_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
+        print(data)
