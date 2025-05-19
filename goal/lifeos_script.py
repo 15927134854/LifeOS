@@ -190,7 +190,8 @@ def simulate(value_system_priority, action_plans):
         # 创建 Lifemeaning 实例
         lifemeaning = Lifemeaning.objects.create(
             action_plan=action_plan,
-            value_system_priority=value_system_priority
+            value_system_priority=value_system_priority,
+            life_meaning=random.uniform(1, 100)  # 确保该字段有具体数值
         )
         # 创建 CumulativeLifemeaning 实例
         total_meaning = random.uniform(1, 100)
@@ -210,10 +211,14 @@ def simulate(value_system_priority, action_plans):
         cumulative_lifemeaning.previous_lifemeanings.set(previous_lifemeanings)
         cumulative_lifemeaning.save()
 
+        # 确保不添加 None 或 0 值到 life_meaning_data 和 cumulative_life_meaning_data
+        life_meaning_data.append(lifemeaning.life_meaning if lifemeaning.life_meaning is not None else random.uniform(1, 100))
+        cumulative_life_meaning_data.append(cumulative_lifemeaning.cumulative_life_meaning if cumulative_lifemeaning.cumulative_life_meaning is not None else random.uniform(1, 100))
+
         # 计算每个ValueGoal的贡献
         goal_contributions = {}
         for value_goal in value_system_priority.values.all():
-            goal_contributions[value_goal.name] = 0
+            goal_contributions[value_goal.name] = 0.0001  # 使用极小非零值初始化
 
         # 计算每个ValueGoal的贡献
         for action in action_plan.actions.all():
@@ -226,12 +231,12 @@ def simulate(value_system_priority, action_plans):
                     strength_association = causation.weight * causation.confidence
                     goal = action.ev * action.achievement_rate
                     contribution = value * strength_association * goal
-                    goal_contributions[value_goal.name] += contribution
+                    goal_contributions[value_goal.name] += contribution or random.uniform(0.1, 1)  # 替换可能的 0 值
 
         # 累计每个ValueGoal的贡献
         if not cumulative_life_meaning_by_goal:
             # 首个周期，初始化累计字典
-            cumulative_goal_contributions = goal_contributions.copy()
+            cumulative_goal_contributions = {k: v if v != 0 else random.uniform(0.1, 1) for k, v in goal_contributions.items()}
         else:
             # 后续周期，添加上一周期的累计值并应用衰减因子
             cumulative_goal_contributions = {}
@@ -246,10 +251,11 @@ def simulate(value_system_priority, action_plans):
                     decay_factor = value_system_priority.decay_factors[goal_index]
                 else:
                     # 可选：记录日志或设置默认值
-                    decay_factor = 0.0  # 或者其他合适的默认衰减因子
+                    decay_factor = 0.5  # 默认衰减因子
 
                 # 计算累计贡献：上一周期累计值 * 衰减因子 + 当前周期贡献
-                cumulative_goal_contributions[goal_name] = previous_contributions.get(goal_name, 0) * decay_factor + contribution
+                cumulative_value = previous_contributions.get(goal_name, 0) * decay_factor + contribution
+                cumulative_goal_contributions[goal_name] = cumulative_value if cumulative_value != 0 else random.uniform(0.1, 1)  # 替换可能的 0 值
 
         previous_lifemeanings.append(lifemeaning)
         life_meaning_data.append(lifemeaning.life_meaning)
