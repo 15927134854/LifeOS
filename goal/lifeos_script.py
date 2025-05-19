@@ -3,16 +3,24 @@ import sys
 import os
 import django
 import datetime
+import random
+import json
 
 # 添加项目根目录到 PYTHONPATH
-sys.path.append("D:\\fangzhen\\LifeOS")
+sys.path.append("D:\\运维仿真\\LifeOS")
 # 设置 DJANGO_SETTINGS_MODULE 环境变量
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "LifeOS.settings")
 django.setup()
 
 
-import json
-import random
+if not os.path.exists('values.json'):
+    print(f"当前工作目录: {os.getcwd()}")
+    print(f"查找的文件路径: {os.path.abspath('goal/values.json')}")
+    raise FileNotFoundError("values.json 未找到，请确认文件是否存在以及路径是否正确。")
+
+with open('values.json', 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
 from django.utils import timezone
 from goal.models import (
     ValueGoalCategory, ValueGoal, ValueSystemPriority, ValueGoalWeight,
@@ -185,10 +193,18 @@ def simulate(value_system_priority, action_plans):
             value_system_priority=value_system_priority
         )
         # 创建 CumulativeLifemeaning 实例
-        cumulative_lifemeaning = CumulativeLifemeaning.objects.create(
-            action_plan=action_plan,
-            value_system_priority=value_system_priority
+        total_meaning = random.uniform(1, 100)
+        accumulated_meaning = random.uniform(1, 100)
+        cumulative_lifemeaning, created = CumulativeLifemeaning.objects.get_or_create(
+            id=4,
+            defaults={
+                'total_meaning': total_meaning,
+                'accumulated_meaning': accumulated_meaning,
+                'last_updated': timezone.now(),
+                'action_plan': action_plan
+            }
         )
+
         cumulative_lifemeaning.previous_lifemeanings.set(previous_lifemeanings)
         cumulative_lifemeaning.save()
 
@@ -266,7 +282,7 @@ if __name__ == "__main__":
 
     # 加载 JSON 数据
     try:
-        with open('data/values.json', 'r', encoding='utf-8') as f:
+        with open('values.json', 'r', encoding='utf-8') as f:
             values_data = json.load(f)
     except FileNotFoundError:
         print("错误: 找不到 values.json 文件")
@@ -315,7 +331,7 @@ if __name__ == "__main__":
 
     # 加载 JSON 数据
     try:
-        with open('data/values.json', 'r', encoding='utf-8') as f:
+        with open('values.json', 'r', encoding='utf-8') as f:
             values_data = json.load(f)
     except FileNotFoundError:
         print("错误: 找不到 values.json 文件")
@@ -337,4 +353,8 @@ if __name__ == "__main__":
         print(f"错误: {file_path} 文件格式不正确")
         exit(1)
 
-
+    json_path = "values.json"
+    if not os.path.exists(json_path):
+        raise FileNotFoundError(f"找不到文件: {json_path}")
+    with open(json_path) as f:
+        data = json.load(f)

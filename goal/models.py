@@ -77,6 +77,7 @@ class ValueGoalWeight(models.Model):
         indexes = [
             models.Index(fields=['system', 'category']),
         ]
+        db_table = 'goal_value_goal_categories'
 
 
 class MetaActionCategory(models.Model):
@@ -351,13 +352,20 @@ class CumulativeLifemeaning(models.Model):
     累计人生意义
     """
     created_at = models.DateTimeField(default=timezone.now, verbose_name="记录时间")
-    action_plan = models.ForeignKey(ActionPlan, on_delete=models.CASCADE, verbose_name="关联的行动计划")
-    value_system_priority = models.ForeignKey(ValueSystemPriority, on_delete=models.CASCADE,
-                                              verbose_name="关联的价值目标体系")
+    action_plan = models.ForeignKey('ActionPlan', on_delete=models.CASCADE, null=True, blank=True)
+    value_system_priority = models.ForeignKey(
+        'ValueSystemPriority',  # 假设目标模型名
+        on_delete=models.CASCADE,  # 或者 SET_NULL 等
+        related_name='cumulative_lifemeanings'
+    )
     cumulative_life_meaning = models.FloatField(null=True, blank=True, verbose_name="累计人生意义数值")
     previous_lifemeanings = models.ManyToManyField(Lifemeaning, related_name='cumulative_records',
                                                    verbose_name="之前的人生意义记录")
-
+    accumulated_meaning = models.FloatField(null=True, blank=True, verbose_name="累积的意义")
+    last_updated = models.DateTimeField(null=True, blank=True, verbose_name="最后更新时间")
+    total_meaning = models.FloatField(null=True, blank=True, verbose_name="总意义值")
+    value_system_priority = models.FloatField(default=0.0)  # 新增字段用于计算优先级
+    life_meaning_history = models.JSONField(default=list, verbose_name="人生意义历史记录")  # 新增字段
 
     class Meta:
         indexes = [
@@ -370,6 +378,15 @@ class CumulativeLifemeaning(models.Model):
             # 临时保存当前ID
             temp_id = self.id
             self.id = None  # 清除ID以确保数据库生成新的自增ID
+            
+            # 确保action_plan在保存前被正确设置
+            if not self.action_plan:
+                # 如果没有设置action_plan，尝试从value_system_priority获取
+                if self.value_system_priority and hasattr(self.value_system_priority, 'action_plan'):
+                    self.action_plan = self.value_system_priority.action_plan
+                else:
+                    raise ValueError("CumulativeLifemeaning requires an action_plan to be set")
+            
             super().save(*args, **kwargs)
             self.id = temp_id  # 恢复原始ID（如果有需要）
         else:
@@ -384,37 +401,12 @@ class CumulativeLifemeaning(models.Model):
             super().save(*args, **kwargs)
 
     def calculate_cumulative_life_meaning(self):
-        cumulative = 0.0
-
-        # 获取并验证人生意义记录
-        lifemeanings = list(
-            self.previous_lifemeanings.order_by('-created_at').distinct()
-        )
-        n = len(lifemeanings)
-
-        # 获取衰减因子并补充默认值
-        decay_factors = list(self.value_system_priority.decay_factors[:n])
-        decay_factors += [1.0] * (n - len(decay_factors))  # 简化默认值补充逻辑
-
-        # 计算累积人生意义
-        decay_factor = 1.0
-        for i in reversed(range(n)):
-            try:
-                decay_factor *= decay_factors[i]
-                if lifemeanings[i].life_meaning is not None:
-                    cumulative += lifemeanings[i].life_meaning * decay_factor
-            except TypeError:
-                # 处理无效的人生意义记录
-                continue
-
-        # 计算当前人生意义
-        current_lm = Lifemeaning.objects.create(
-            action_plan=self.action_plan,
-            value_system_priority=self.value_system_priority,
-            life_meaning=None
-        )
-        current_lm.calculate_life_meaning()
-        current_lm.save(update_fields=['life_meaning'])  # 显式保存以确保数据一致性
-        if current_lm.life_meaning is not None:
-            cumulative += current_lm.life_meaning
-
+        # 假设 value_system_priority 是另一个模型实例，其拥有 decay_factors 字段
+        # 修改前: self.value_system_priority.decay_factors
+        if not hasattr(self, 'life_meaning_history'):
+            self.life_meaning_history = []
+            
+        n = len(self.life_meaning_history)
+        
+        # 示例修正：如果 decay_factors 存在于当前模型自身上
+        decay_factors = list(self.decay_factors[:n]) if hasattr(self, 'decay_factors') else []
