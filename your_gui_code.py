@@ -1,0 +1,1 @@
+font = ("SimHei", 12)  # 替换 Arial 为 SimHei 以支持中文显示

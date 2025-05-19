@@ -324,3 +324,50 @@ if __name__ == "__main__":
     print("每个价值目标的人生意义贡献:", life_meaning_by_goal)
     print("每个价值目标的累计人生意义贡献:", cumulative_life_meaning_by_goal)
 
+    # 数据可视化部分
+    import matplotlib.pyplot as plt
+
+    # Specify the path to a font that supports CJK characters, e.g., 'SimHei'
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+    import numpy as np
+    import seaborn as sns
+    sns.set(style="whitegrid")
+
+    # 极坐标图函数
+    def plot_radar_chart(labels, values, title):
+        angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
+        values += values[:1]  # 闭合图形
+        angles += angles[:1]
+
+        fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
+        ax.fill(angles, values, color='red', alpha=0.25)
+        ax.plot(angles, values, color='red', linewidth=2)
+        ax.set_xticks(angles[:-1], labels)
+        ax.set_title(title)
+        ax.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+    # 1. 人生意义趋势雷达图
+    if life_meaning_data:
+        labels = [f'Cycle {i+1}' for i in range(len(life_meaning_data))]
+        values = life_meaning_data
+        plot_radar_chart(labels, values, 'Life Meaning Trend (Radar Chart)')
+
+    # 2. 累计人生意义趋势雷达图
+    if cumulative_life_meaning_data:
+        labels = [f'Cycle {i+1}' for i in range(len(cumulative_life_meaning_data))]
+        values = cumulative_life_meaning_data
+        plot_radar_chart(labels, values, 'Cumulative Life Meaning Trend (Radar Chart)')
+
+    # 3. 每个价值目标的贡献雷达图
+    if life_meaning_by_goal:
+        goal_names = list(life_meaning_by_goal[0].keys())
+        goal_values = [sum(d[goal] for d in life_meaning_by_goal if goal in d) for goal in goal_names]
+        plot_radar_chart(goal_names, goal_values, 'Contribution by Value Goal (Radar Chart)')
+
+    # 4. 累计价值目标贡献雷达图
+    if cumulative_life_meaning_by_goal:
+        cumulative_goal_values = [sum(d[goal] for d in cumulative_life_meaning_by_goal if goal in d) for goal in goal_names]
+        plot_radar_chart(goal_names, cumulative_goal_values, 'Cumulative Contribution by Value Goal (Radar Chart)')
