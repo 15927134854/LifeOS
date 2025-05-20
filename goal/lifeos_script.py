@@ -128,7 +128,7 @@ def build_value_system_priority(values_data):
         logger.error("刷新 ValueSystemPriority 数据时发生错误: %s", e)
         return None
 
-    return system
+    return system, value_goals  # 返回 system 和 value_goals 两个值
 
 
 def build_meta_actions(values_data, value_goals):
@@ -431,7 +431,17 @@ if __name__ == "__main__":
         "cumulative_life_meaning_by_goal": [
             {**{k: float(v) for k, v in item.items()}} for item in cumulative_life_meaning_by_goal
         ],
-        "lifespan_stages": [stage[2] for stage in life_stages]  # 添加人生阶段信息
+        "lifespan_stages": [
+            stage[2] for stage in [
+                (0, 5, "婴幼儿期"),
+                (6, 12, "童年期"),
+                (13, 19, "青少年期"),
+                (20, 35, "青年期"),
+                (36, 50, "中年期"),
+                (51, 65, "壮年期"),
+                (66, 80, "老年期")
+            ]
+        ]  # 添加人生阶段信息
     }
 
     # 写入simulation_output.json文件
