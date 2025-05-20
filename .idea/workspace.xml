@@ -51,7 +51,7 @@
       <recent name="D:\运维仿真\LifeOS" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.run_visualization">
+  <component name="RunManager" selected="Python.lifeos_script">
     <configuration name="lifeos_script" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="LifeOS" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -159,8 +159,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.run_visualization" />
         <item itemvalue="Python.lifeos_script" />
+        <item itemvalue="Python.run_visualization" />
         <item itemvalue="Python.start_visualization" />
         <item itemvalue="Python.start_server (1)" />
         <item itemvalue="Python.start_server" />

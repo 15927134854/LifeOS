@@ -5,21 +5,37 @@ import django
 import datetime
 import random
 import json
+import logging
+
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# 获取项目根目录
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # 添加项目根目录到 PYTHONPATH
-sys.path.append("D:\\运维仿真\\LifeOS")
+sys.path.append(PROJECT_ROOT)
 # 设置 DJANGO_SETTINGS_MODULE 环境变量
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "LifeOS.settings")
 django.setup()
 
 
 if not os.path.exists('values.json'):
-    print(f"当前工作目录: {os.getcwd()}")
-    print(f"查找的文件路径: {os.path.abspath('goal/values.json')}")
+    logger.error("当前工作目录: %s", os.getcwd())
+    logger.error("查找的文件路径: %s", os.path.abspath('goal/values.json'))
     raise FileNotFoundError("values.json 未找到，请确认文件是否存在以及路径是否正确。")
 
-with open('values.json', 'r', encoding='utf-8') as f:
-    data = json.load(f)
+try:
+    with open('values.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+except IOError as e:
+    logger.error("读取 values.json 文件时发生错误: %s", e)
+    raise
+except json.JSONDecodeError as e:
+    logger.error("解析 values.json 文件时发生错误: %s", e)
+    raise
+
 
 from django.utils import timezone
 from goal.models import (
@@ -58,6 +74,9 @@ def build_value_system_priority(values_data):
         return None
 
     root_category, value_goals = create_category_tree(values_data['ValueSystemData'])
+    # 初始化随机数生成器
+    random.seed(datetime.datetime.now().timestamp())
+
     weights = [random.random() for _ in value_goals]
     decay_factors = [random.random() for _ in value_goals]
 
@@ -82,14 +101,14 @@ def build_value_system_priority(values_data):
     try:
         system.save()
     except Exception as e:
-        print(f"保存 ValueSystemPriority 时发生错误: {e}")
+        logger.error("保存 ValueSystemPriority 时发生错误: %s", e)
         return None
 
     # 刷新system实例以确保values关系被正确保存
     try:
         system.refresh_from_db()
     except Exception as e:
-        print(f"刷新 ValueSystemPriority 数据时发生错误: {e}")
+        logger.error("刷新 ValueSystemPriority 数据时发生错误: %s", e)
         return None
 
     return system
@@ -145,7 +164,11 @@ def build_action_plans(meta_actions, num_cycles):
             actual_start_at = None
             actual_end_at = None
             status = random.choice(['未开始', '进行中', '已完成'])
-            ac = random.uniform(0.5, meta_action.pv * 1.2)  # 更广泛的评分范围
+            if meta_action.pv is not None:
+                ac = random.uniform(0.5, float(meta_action.pv) * 1.2)  # 更广泛的评分范围
+            else:
+                logger.warning("meta_action.pv 为 None，使用默认值 5.0")
+                ac = random.uniform(0.5, 6.0)
             ev = random.uniform(0.3, ac)
             achievement_rate = ev / float(meta_action.pv)
             notes = None
@@ -186,6 +209,11 @@ def simulate(value_system_priority, action_plans):
     life_meaning_by_goal = []
     cumulative_life_meaning_by_goal = []
 
+    # 预加载所有 ValueGoal 以减少数据库查询
+    value_goals = list(ValueGoal.objects.all())
+    value_goal_ids = {vg.id: vg for vg in value_goals}
+    value_goal_names = {vg.name: vg for vg in value_goals}
+
     for action_plan in action_plans:
         # 创建 Lifemeaning 实例
         lifemeaning = Lifemeaning.objects.create(
@@ -224,38 +252,24 @@ def simulate(value_system_priority, action_plans):
         for action in action_plan.actions.all():
             if action.meta_action and action.meta_action.causations.exists():
                 for causation in action.meta_action.causations.all():
-                    value_goal = ValueGoal.objects.get(id=causation.causation_pair['value_goal_id'])
-                    value_index = list(value_system_priority.values.all()).index(value_goal)
-                    value = value_system_priority.get_weights()[value_index]
+                    # 使用预加载的 ValueGoal 映射
+                    try:
+                        goal = value_goal_names[goal_name]
+                        goal_index = list(value_system_priority.values.all()).index(goal)
+                    except KeyError:
+                        logger.warning("未找到名为 %s 的 ValueGoal", goal_name)
+                        decay_factor = 0.5  # 默认衰减因子
+                    else:
+                        # 添加索引边界检查
+                        if goal_index < len(value_system_priority.decay_factors):
+                            decay_factor = value_system_priority.decay_factors[goal_index]
+                        else:
+                            # 可选：记录日志或设置默认值
+                            decay_factor = 0.5  # 默认衰减因子
 
-                    strength_association = causation.weight * causation.confidence
-                    goal = action.ev * action.achievement_rate
-                    contribution = value * strength_association * goal
-                    goal_contributions[value_goal.name] += contribution or random.uniform(0.1, 1)  # 替换可能的 0 值
-
-        # 累计每个ValueGoal的贡献
-        if not cumulative_life_meaning_by_goal:
-            # 首个周期，初始化累计字典
-            cumulative_goal_contributions = {k: v if v != 0 else random.uniform(0.1, 1) for k, v in goal_contributions.items()}
-        else:
-            # 后续周期，添加上一周期的累计值并应用衰减因子
-            cumulative_goal_contributions = {}
-            previous_contributions = cumulative_life_meaning_by_goal[-1]
-
-            for goal_name, contribution in goal_contributions.items():
-                # 找到对应ValueGoal的索引以获取正确的衰减因子
-                goal = ValueGoal.objects.get(name=goal_name)
-                goal_index = list(value_system_priority.values.all()).index(goal)
-                # 添加索引边界检查
-                if goal_index < len(value_system_priority.decay_factors):
-                    decay_factor = value_system_priority.decay_factors[goal_index]
-                else:
-                    # 可选：记录日志或设置默认值
-                    decay_factor = 0.5  # 默认衰减因子
-
-                # 计算累计贡献：上一周期累计值 * 衰减因子 + 当前周期贡献
-                cumulative_value = previous_contributions.get(goal_name, 0) * decay_factor + contribution
-                cumulative_goal_contributions[goal_name] = cumulative_value if cumulative_value != 0 else random.uniform(0.1, 1)  # 替换可能的 0 值
+                    # 计算累计贡献：上一周期累计值 * 衰减因子 + 当前周期贡献
+                    cumulative_value = previous_contributions.get(goal_name, 0) * decay_factor + contribution
+                    cumulative_goal_contributions[goal_name] = cumulative_value if cumulative_value != 0 else random.uniform(0.1, 1)  # 替换可能的 0 值
 
         previous_lifemeanings.append(lifemeaning)
         life_meaning_data.append(lifemeaning.life_meaning)
@@ -289,8 +303,15 @@ if __name__ == "__main__":
         ValueGoal.objects.all().delete()
         MetaAction.objects.all().delete()
         ActionPlan.objects.all().delete()
+        # 可选：清理其他相关模型数据
+        Lifemeaning.objects.all().delete()
+        CumulativeLifemeaning.objects.all().delete()
+        ValueSystemPriority.objects.all().delete()
+        ValueGoalWeight.objects.all().delete()
+        MetaActionCausationValueGoal.objects.all().delete()
+        Action.objects.all().delete()
     except Exception as e:
-        print(f"清理现有数据时发生错误: {e}")
+        logger.error("清理现有数据时发生错误: %s", e)
         # 继续执行后续操作，因为某些表可能为空
 
     # 加载 JSON 数据
@@ -305,19 +326,40 @@ if __name__ == "__main__":
         exit(1)
 
     # 构建价值目标体系
-    value_system_priority = build_value_system_priority(values_data)
+    try:
+        with transaction.atomic():
+            value_system_priority = build_value_system_priority(values_data)
+    except Exception as e:
+        logger.error("构建价值目标体系时发生错误: %s", e)
+        exit(1)
 
     # 构建元行动
-    value_goals = ValueGoal.objects.all()
-    meta_actions = build_meta_actions(values_data, value_goals)
+    try:
+        with transaction.atomic():
+            value_goals = ValueGoal.objects.all()
+            meta_actions = build_meta_actions(values_data, value_goals)
+    except Exception as e:
+        logger.error("构建元行动时发生错误: %s", e)
+        exit(1)
 
     # 构建行动计划
-    num_cycles = random.randint(20, 30)  # 增加模拟周期数
-    action_plans = build_action_plans(meta_actions, num_cycles)
+    try:
+        with transaction.atomic():
+            num_cycles = random.randint(20, 25)  # 固定范围以提高可预测性
+            action_plans = build_action_plans(meta_actions, num_cycles)
+    except Exception as e:
+        logger.error("构建行动计划时发生错误: %s", e)
+        exit(1)
 
     # 运行仿真
-    life_meaning_data, cumulative_life_meaning_data, life_meaning_by_goal, cumulative_life_meaning_by_goal, num_cycles = simulate(
-        value_system_priority, action_plans)
+    try:
+        with transaction.atomic():
+            life_meaning_data, cumulative_life_meaning_data, life_meaning_by_goal, \
+                cumulative_life_meaning_by_goal, num_cycles = simulate(
+                value_system_priority, action_plans)
+    except Exception as e:
+        logger.error("运行仿真时发生错误: %s", e)
+        exit(1)
 
     print("人生意义数据:", life_meaning_data)
     print("累计人生意义数据:", cumulative_life_meaning_data)
