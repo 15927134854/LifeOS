@@ -771,7 +771,7 @@
         function getLifeStage(value, total) {
             const ratio = value / total;
             if (ratio > 0.3) return "核心价值";
-            if (ratio > 0.2) return "重要目标";
+            if (ratio > 0.2) return "重要目標";
             if (ratio > 0.1) return "成長領域";
             return "探索方向";
         }
@@ -812,6 +812,40 @@
             .attr("class", "tooltip")
             .style("opacity", 0);
     }
+
+    // 假设我们有一个函数来获取数据
+    function fetchSimulationData() {
+        // 这里可以是从后端 API 获取数据的逻辑，或者从全局变量读取
+        return {
+            life_meaning_by_goal: [{
+                家庭: 0.8,
+                健康: 0.7,
+                学习: 0.6,
+                社交: 0.5
+            }]
+        };
+    }
+
+    // 初始化图表时检查数据是否存在
+    function initializeCharts() {
+        const data = fetchSimulationData();
+
+        if (!data || !data.life_meaning_by_goal || data.life_meaning_by_goal.length === 0) {
+            console.error('数据缺失或格式不正确');
+            alert('无法加载可视化数据，请检查后端输出是否正常。');
+            return;
+        }
+
+        // 正常继续初始化图表...
+        console.log('数据加载成功', data);
+        // 此处调用你的图表绘制函数，例如 drawLineChart(data), drawPieChart(data) 等
+    }
+
+    // 页面加载完成后执行
+    window.onload = function() {
+        initializeCharts();
+    };
+
 </script>
 </body>
 </html>

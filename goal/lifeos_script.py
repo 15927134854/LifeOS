@@ -340,6 +340,80 @@ def simulate(value_system_priority, action_plans):
     return life_meaning_data, cumulative_life_meaning_data, life_meaning_by_goal, cumulative_life_meaning_by_goal, len(action_plans)
 
 
+def recommend_actions_by_age(age, value_goals):
+    """
+    根据年龄推荐价值目标的优先级和具体行动建议。
+    
+    参数:
+        age (int): 当前年龄
+        value_goals (list of str): 所有价值目标名称列表
+    返回:
+        dict: {value_goal_name: weight} 和行动建议
+    """
+    # 预设年龄段配置
+    if age <= 12:
+        weights = {'家庭': 0.4, '健康': 0.3, '学习': 0.2, '社交': 0.1}
+        actions = [
+            "多陪伴家人，建立安全感",
+            "培养良好的作息和饮食习惯",
+            "鼓励探索感兴趣的事物，激发好奇心"
+        ]
+    elif 13 <= age <= 18:
+        weights = {'学习': 0.4, '健康': 0.3, '社交': 0.2, '自我表达': 0.1}
+        actions = [
+            "设定阶段性学习目标并坚持执行",
+            "每天保持适量运动，保持身体健康",
+            "积极参与学校活动，拓展社交圈"
+        ]
+    elif 19 <= age <= 30:
+        weights = {'成长': 0.4, '职业': 0.3, '社交': 0.2, '财务': 0.1}
+        actions = [
+            "制定清晰的职业发展规划",
+            "主动学习新技能，提升核心竞争力",
+            "建立稳定的人际关系网络"
+        ]
+    elif 31 <= age <= 45:
+        weights = {'职业': 0.3, '家庭': 0.3, '成长': 0.2, '社会责任': 0.2}
+        actions = [
+            "平衡工作与家庭，避免过度消耗",
+            "为家庭提供稳定保障（如保险、储蓄）",
+            "参与公益或社区事务，回馈社会"
+        ]
+    elif 46 <= age <= 60:
+        weights = {'家庭': 0.3, '健康': 0.3, '社会责任': 0.2, '精神追求': 0.2}
+        actions = [
+            "重视子女教育或支持其独立",
+            "定期体检，保持规律作息",
+            "分享人生经验，参与指导他人"
+        ]
+    else:
+        weights = {'健康': 0.4, '家庭': 0.3, '精神追求': 0.2, '社会连接': 0.1}
+        actions = [
+            "保持身体活力，适度锻炼",
+            "与家人共度美好时光，传递家风",
+            "撰写回忆录或参与志愿活动，延续价值"
+        ]
+
+    # 过滤掉未定义的价值目标
+    weights = {k: v for k, v in weights.items() if k in value_goals}
+
+    return {
+        'weights': weights,
+        'actions': actions
+    }
+
+# 示例调用
+value_goals = ['家庭', '健康', '学习', '社交', '成长', '职业', '社会责任', '精神追求']
+current_age = 28
+recommendation = recommend_actions_by_age(current_age, value_goals)
+print(f"\\n--- {current_age} 岁 行动建议 ---")
+print("推荐价值目标权重:")
+for goal, weight in recommendation['weights'].items():
+    print(f"- {goal}: {weight * 100:.0f}%")
+print("\n具体行动建议:")
+for action in recommendation['actions']:
+    print(f"- {action}")
+
 if __name__ == "__main__":
     import os
     import sys
@@ -445,3 +519,61 @@ if __name__ == "__main__":
         json.dump(output_data, f, ensure_ascii=False, indent=4)
 
     print("数据已导出到 simulation_output.json")
+
+    # 生成用于D3.js可视化的数据结构
+    output_data = {
+        "life_meaning": life_meaning_data,
+        "cumulative_life_meaning": cumulative_life_meaning_data,
+        "life_meaning_by_goal": [
+            {**{k: float(v) for k, v in item.items()}} for item in life_meaning_by_goal
+        ],
+        "cumulative_life_meaning_by_goal": [
+            {**{k: float(v) for k, v in item.items()}} for item in cumulative_life_meaning_by_goal
+        ],
+        "lifespan_stages": [
+            {
+                "stage_name": stage[2],
+                "start_age": stage[0],
+                "end_age": stage[1]
+            } for stage in value_system_priority.lifespan_stages  # 使用模型中的生命周期阶段数据
+        ]  # 添加结构化的人生阶段信息
+    }
+
+    # 写入simulation_output.json文件
+    with open('simulation_output.json', 'w', encoding='utf-8') as f:
+        json.dump(output_data, f, ensure_ascii=False, indent=4)
+
+    print("数据已导出到 simulation_output.json")
+
+    # 确保 simulation_output 包含必要的字段
+    simulation_output = {
+        'life_meaning_by_goal': [{
+            '家庭': 0.8,
+            '健康': 0.7,
+            '学习': 0.6,
+            '社交': 0.5
+        }]
+    }
+
+    value_goals = []
+    if 'life_meaning_by_goal' in simulation_output:
+        value_goals = list(simulation_output['life_meaning_by_goal'][0].keys())
+    else:
+        value_goals = []  # 或者根据需求进行默认赋值
+
+    # 在原有模拟逻辑中加入行动计划推荐
+    # 假设我们已经运行了模拟并获取了 value_goals 列表
+    value_goals = list(simulation_output.get('life_meaning_by_goal', [{}])[0].keys())
+
+    # 获取当前年龄（示例）
+    current_age = 28  # 可从用户输入或数据源读取
+
+    # 获取推荐
+    recommendation = recommend_actions_by_age(current_age, value_goals)
+    print(f"\\n--- {current_age} 岁 行动建议 ---")
+    print("推荐价值目标权重:")
+    for goal, weight in recommendation['weights'].items():
+        print(f"- {goal}: {weight * 100:.0f}%")
+    print("\n具体行动建议:")
+    for action in recommendation['actions']:
+        print(f"- {action}")

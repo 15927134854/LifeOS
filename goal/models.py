@@ -194,6 +194,19 @@ class MetaAction(models.Model):
     def __str__(self):
         return self.name
 
+    # 在 MetaAction 类中添加 lifespan_stages 的序列化支持
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'content': self.content,
+            'pv': str(self.pv),
+            'effectiveness': self.effectiveness,
+            'priority': self.priority,
+            'recommendation': self.recommendation,
+            'lifespan_stages': self.lifespan_stages  # 添加生命周期阶段数据的导出支持
+        }
+
 
 class Action(models.Model):
     """
