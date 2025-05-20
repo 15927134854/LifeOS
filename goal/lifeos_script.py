@@ -81,12 +81,28 @@ def build_value_system_priority(values_data):
     weights = [random.random() for _ in value_goals]
     decay_factors = [random.random() for _ in value_goals]
 
+    # 计算人的生命周期（0-80岁）
+    lifespan_years = 80
+    current_year = timezone.now().year
+    birth_year = current_year - random.randint(0, 80)  # 随机出生年份
+
+    # 将生命周期划分为多个阶段
+    life_stages = [
+        (0, 5, "婴幼儿期"),
+        (6, 12, "童年期"),
+        (13, 19, "青少年期"),
+        (20, 35, "青年期"),
+        (36, 50, "中年期"),
+        (51, 65, "壮年期"),
+        (66, 80, "老年期")
+    ]
+
     system = ValueSystemPriority.objects.create(
         name="Value System Priority",
         description="Default value system priority description",
         effective_at=timezone.now(),
         status="生效",
-        period="2025",
+        period=f"{current_year}-{current_year + 10}",  # 假设系统有效期为10年
         category=root_category
     )
 
