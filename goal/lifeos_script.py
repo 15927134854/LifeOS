@@ -386,12 +386,12 @@ if __name__ == "__main__":
     # 构建价值目标体系
     try:
         with transaction.atomic():
-            value_system_priority = build_value_system_priority(values_data)
+            value_system_priority, value_goals = build_value_system_priority(values_data)
     except Exception as e:
         logger.error("构建价值目标体系时发生错误: %s", e)
         exit(1)
 
-    # 构建元行动
+    # 预加载所有 ValueGoal 以减少数据库查询
     value_goals = list(ValueGoal.objects.all())  # 确保是最新数据
     value_goal_ids = {vg.id: vg for vg in value_goals}
     value_goal_names = {vg.name: vg for vg in value_goals}
@@ -430,7 +430,8 @@ if __name__ == "__main__":
         ],
         "cumulative_life_meaning_by_goal": [
             {**{k: float(v) for k, v in item.items()}} for item in cumulative_life_meaning_by_goal
-        ]
+        ],
+        "lifespan_stages": [stage[2] for stage in life_stages]  # 添加人生阶段信息
     }
 
     # 写入simulation_output.json文件
