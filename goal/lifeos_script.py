@@ -458,18 +458,33 @@ if __name__ == "__main__":
         exit(1)
 
     # 构建价值目标体系
-    try:
-        with transaction.atomic():
-            value_system_priority, value_goals = build_value_system_priority(values_data)
-    except Exception as e:
-        logger.error("构建价值目标体系时发生错误: %s", e)
+    system, value_goals = build_value_system_priority(values_data)  # 修改为接收两个返回值
+    if not system:
+        print("构建价值目标体系失败")
         exit(1)
 
-    # 预加载所有 ValueGoal 以减少数据库查询
-    value_goals = list(ValueGoal.objects.all())  # 确保是最新数据
-    value_goal_ids = {vg.id: vg for vg in value_goals}
-    value_goal_names = {vg.name: vg for vg in value_goals}
+    # 确保 system.lifespan_stages 被正确初始化
+    if not system.lifespan_stages:
+        # 如果 lifespan_stages 为空，使用默认生命周期阶段
+        system.lifespan_stages = [
+            (0, 5, "婴幼儿期"),
+            (6, 12, "童年期"),
+            (13, 19, "青少年期"),
+            (20, 35, "青年期"),
+            (36, 50, "中年期"),
+            (51, 65, "壮年期"),
+            (66, 80, "老年期")
+        ]
+        system.save()  # 保存更新后的 system 实例
+
+    # 将 system 赋值给 value_system_priority 变量
+    value_system_priority = system
+
+    # 构建元行动
     meta_actions = build_meta_actions(values_data, value_goals)
+    if not meta_actions:
+        print("构建元行动失败")
+        exit(1)
 
     # 构建行动计划
     try:
@@ -510,15 +525,16 @@ if __name__ == "__main__":
                 "stage_name": stage[2],
                 "start_age": stage[0],
                 "end_age": stage[1]
-            } for stage in value_system_priority.lifespan_stages  # 使用模型中的生命周期阶段数据
+            } for stage in system.lifespan_stages  # 使用构建的价值体系中的生命周期阶段数据
         ]  # 添加结构化的人生阶段信息
     }
 
     # 写入simulation_output.json文件
     with open('simulation_output.json', 'w', encoding='utf-8') as f:
         json.dump(output_data, f, ensure_ascii=False, indent=4)
-
+        
     print("数据已导出到 simulation_output.json")
+    print("lifespan_stages 数据:", [stage[2] for stage in system.lifespan_stages])  # 更清晰地输出生命周期阶段名称
 
     # 生成用于D3.js可视化的数据结构
     output_data = {
@@ -535,7 +551,7 @@ if __name__ == "__main__":
                 "stage_name": stage[2],
                 "start_age": stage[0],
                 "end_age": stage[1]
-            } for stage in value_system_priority.lifespan_stages  # 使用模型中的生命周期阶段数据
+            } for stage in system.lifespan_stages  # 使用构建的价值体系中的生命周期阶段数据
         ]  # 添加结构化的人生阶段信息
     }
 
