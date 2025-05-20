@@ -148,6 +148,20 @@
             color: #555;
         }
 
+        // 添加认知笔记输入框宽度自适应样式
+        .note-body textarea {
+            width: 100%;
+            max-width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            resize: vertical;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
         @media (max-width: 768px) {
             .note-section {
                 margin: 20px 10px;
@@ -228,6 +242,16 @@
                 const cumulativeLifeMeaningData = data.cumulative_life_meaning || [];
                 const lifeMeaningByGoal = data.life_meaning_by_goal || [];
                 const cumulativeLifeMeaningByGoal = data.cumulative_life_meaning_by_goal || [];
+                const lifespanStages = data.lifespan_stages || [];
+
+                // 将数据附加到 window 对象，便于其他函数访问
+                window.visualizationData = {
+                    lifeMeaningData,
+                    cumulativeLifeMeaningData,
+                    lifeMeaningByGoal,
+                    cumulativeLifeMeaningByGoal,
+                    lifespanStages
+                };
 
                 // 绘制折线图
                 drawLineChart('#life-meaning-trend', lifeMeaningData, '人生意義趋势');
@@ -277,6 +301,51 @@
                 } else {
                     console.error('Invalid or missing cumulative_life_meaning_by_goal data');
                 }
+
+                // 添加推荐价值目标权重和具体行动建议区域
+                const recommendationSection = d3.select("body")
+                  .append("div")
+                    .attr("class", "note-section")
+                    .style("max-width", "1000px")
+                    .style("margin", "40px auto")
+                    .style("padding", "20px")
+                    .style("background", "#fefefe")
+                    .style("border-left", "6px solid #e74c3c")
+                    .style("border-radius", "6px")
+                    .style("box-shadow", "0 2px 8px rgba(0, 0, 0, 0.08)");
+
+                recommendationSection.append("div")
+                    .attr("class", "note-header")
+                    .style("font-size", "18px")
+                    .style("font-weight", "bold")
+                    .style("margin-bottom", "10px")
+                    .style("color", "#2c3e50")
+                    .text("当前年龄段推荐");
+
+                const recommendationList = recommendationSection.append("div")
+                    .attr("class", "note-body")
+                    .append("ul")
+                    .style("list-style-type", "none")
+                    .style("padding-left", "0")
+                    .selectAll("li")
+                    .data(["value_goals", "actions"])
+                    .enter()
+                    .append("li")
+                    .style("margin-bottom", "10px")
+                    .html(d => {
+                        if (d === "value_goals") {
+                            return `<strong>推荐价值目標权重:</strong><br>` + 
+                                Object.entries(window.visualizationData.valueGoalsWeights || {})
+                                    .map(([goal, weight]) => `- ${goal}: ${weight * 100:.0f}%`)
+                                    .join("<br>");
+                        } else {
+                            return `<strong>具体行動建议:</strong><br>` + 
+                                (window.visualizationData.recommendedActions || [])
+                                    .map(action => `- ${action}`)
+                                    .join("<br>");
+                        }
+                    });
+
             })
             .catch(error => {
                 console.error('Error loading JSON data:', error);
@@ -605,7 +674,7 @@
                 tooltip.transition()
                     .duration(200)
                     .style("opacity", .9);
-                tooltip.html(`周期: ${d.x + 1}<br/>값: ${d.y.toFixed(2)}<br/><br/>意义说明：钻取视角 - 该类别在不同周期中的表现趋势。`)
+                tooltip.html(`周期: ${d.x + 1}<br/>값: ${d.y.toFixed(2)}<br/><br/>意义说明：钻取视角 - 该类别在不同周期中の表现趋势。`)
                     .style("left", (event.pageX + 5) + "px")
                     .style("top", (event.pageY - 28) + "px")
                     .style("transform", "scale(1.1)");
@@ -767,11 +836,11 @@
                 return stage ? `人生阶段: ${stage}` : "";
             });
 
-        // 辅助函数：根据值判断人生阶段
+        // 辅助函数：根据値判断人生阶段
         function getLifeStage(value, total) {
             const ratio = value / total;
             if (ratio > 0.3) return "核心价值";
-            if (ratio > 0.2) return "重要目标";
+            if (ratio > 0.2) return "重要目標";
             if (ratio > 0.1) return "成長領域";
             return "探索方向";
         }
@@ -820,7 +889,7 @@
             life_meaning_by_goal: [{
                 家庭: 0.8,
                 健康: 0.7,
-                学习: 0.6,
+                学習: 0.6,
                 社交: 0.5
             }]
         };
@@ -837,11 +906,62 @@
         }
 
         // 正常继续初始化图表...
-        console.log('データ加载成功', data);
+        console.log('數據加载成功', data);
+
+        // 提取并存储推荐数据
+        window.visualizationData = {
+            lifeMeaningData: data.life_meaning || [],
+            cumulativeLifeMeaningData: data.cumulative_life_meaning || [],
+            lifeMeaningByGoal: data.life_meaning_by_goal || [],
+            cumulativeLifeMeaningByGoal: data.cumulative_life_meaning_by_goal || [],
+            lifespanStages: data.lifespan_stages || [],
+            valueGoalsWeights: {
+                '家庭': 0.4,
+                '健康': 0.3,
+                '学习': 0.2,
+                '社交': 0.1
+            },
+            recommendedActions: [
+                "多陪伴家人，建立安全感",
+                "培养良好的作息和饮食习惯",
+                "鼓励探索感兴趣的事物，激发好奇心"
+            ]
+        };
+
         // 此处调用你的图表绘制函数，例如 drawLineChart(data), drawPieChart(data) 等
+        drawPieChart('#value-goal-contribution', generatePieData(), '每个价值目標の人生意義貢献');
+        drawLineChart('#life-meaning-trend', window.visualizationData.lifeMeaningData, '人生意義趋势');
+        drawLineChart('#cumulative-life-meaning-trend', window.visualizationData.cumulativeLifeMeaningData, '累计人生意義趋势');
+
+        // 添加推荐展示
+        showRecommendations();
     }
 
-    // 页面加载完成后执行
+    // 辅助函数：生成饼图数据
+    function generatePieData() {
+        const aggregatedLifeMeaningByGoal = {};
+        window.visualizationData.lifeMeaningByGoal.forEach(entry => {
+            Object.entries(entry).forEach(([key, value]) => {
+                if (!aggregatedLifeMeaningByGoal[key]) {
+                    aggregatedLifeMeaningByGoal[key] = 0;
+                }
+                aggregatedLifeMeaningByGoal[key] += value;
+            });
+        });
+
+        return Object.keys(aggregatedLifeMeaningByGoal).map(key => ({
+            name: key,
+            value: aggregatedLifeMeaningByGoal[key]
+        }));
+    }
+
+    // 新增函数：展示推荐信息
+    function showRecommendations() {
+        // 这里可以添加更复杂的推荐逻辑，根据图表数据动态生成推荐内容
+        console.log('展示推荐信息:', window.visualizationData);
+    }
+
+    // ページ読み込み完了後実行
     window.onload = function() {
         initializeCharts();
     };
