@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0ca0a285-a183-49cf-adf5-7354d2f6ca6c" name="Changes" comment="" />
+    <list default="true" id="0ca0a285-a183-49cf-adf5-7354d2f6ca6c" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/goal/lifeos_script.py" beforeDir="false" afterPath="$PROJECT_DIR$/goal/lifeos_script.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

@@ -6,6 +6,7 @@ import datetime
 import random
 import json
 import logging
+from django.db import transaction  # 导入 transaction 模块
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -214,6 +215,9 @@ def simulate(value_system_priority, action_plans):
     value_goal_ids = {vg.id: vg for vg in value_goals}
     value_goal_names = {vg.name: vg for vg in value_goals}
 
+    # 构建元行动
+    meta_actions = build_meta_actions(values_data, value_goals)
+
     for action_plan in action_plans:
         # 创建 Lifemeaning 实例
         lifemeaning = Lifemeaning.objects.create(
@@ -245,6 +249,8 @@ def simulate(value_system_priority, action_plans):
 
         # 计算每个ValueGoal的贡献
         goal_contributions = {}
+        # 初始化 goal_name 变量
+        goal_name = ""
         for value_goal in value_system_priority.values.all():
             goal_contributions[value_goal.name] = 0.0001  # 使用极小非零值初始化
 
@@ -253,31 +259,67 @@ def simulate(value_system_priority, action_plans):
             if action.meta_action and action.meta_action.causations.exists():
                 for causation in action.meta_action.causations.all():
                     # 使用预加载的 ValueGoal 映射
+                    value_goal_id = causation.causation_pair['value_goal_id']
+                    value_goal = value_goal_ids.get(value_goal_id)
+                    if not value_goal:
+                        logger.warning("未找到 ID 为 %s 的 ValueGoal", value_goal_id)
+                        continue
+
+                    strength_association = causation.weight * causation.confidence
+                    goal = action.ev * action.achievement_rate
+                    
+                    # 获取对应的权重值
                     try:
-                        goal = value_goal_names[goal_name]
-                        goal_index = list(value_system_priority.values.all()).index(goal)
-                    except KeyError:
-                        logger.warning("未找到名为 %s 的 ValueGoal", goal_name)
-                        decay_factor = 0.5  # 默认衰减因子
-                    else:
-                        # 添加索引边界检查
-                        if goal_index < len(value_system_priority.decay_factors):
-                            decay_factor = value_system_priority.decay_factors[goal_index]
+                        value_index = list(value_system_priority.values.all()).index(value_goal)
+                        if value_index < len(value_system_priority.get_weights()):
+                            value = value_system_priority.get_weights()[value_index]
                         else:
-                            # 可选：记录日志或设置默认值
-                            decay_factor = 0.5  # 默认衰减因子
+                            logger.warning("未找到 %s 的权重值，使用默认值 0.5", value_goal.name)
+                            value = 0.5  # 默认权重值
+                    except Exception as e:
+                        logger.error("获取权重值时发生错误: %s", e)
+                        value = 0.5  # 默认权重值
+
+                    contribution = value * strength_association * goal
+                    goal_name = value_goal.name  # 设置 goal_name 变量
+                    goal_contributions[goal_name] += contribution or random.uniform(0.1, 1)  # 替换可能的 0 值
+
+        # 累计每个ValueGoal的贡献
+        if not cumulative_life_meaning_by_goal:
+            # 首个周期，初始化累计字典
+            cumulative_goal_contributions = {k: v if v != 0 else random.uniform(0.1, 1) for k, v in goal_contributions.items()}
+        else:
+            # 后续周期，添加上一周期的累计值并应用衰减因子
+            cumulative_goal_contributions = {}
+            previous_contributions = cumulative_life_meaning_by_goal[-1]
+
+            for goal_name, contribution in goal_contributions.items():
+                # 找到对应ValueGoal的索引以获取正确的衰减因子
+                try:
+                    goal = value_goal_names[goal_name]
+                    goal_index = list(value_system_priority.values.all()).index(goal)
+                except KeyError:
+                    logger.warning("未找到名为 %s 的 ValueGoal", goal_name)
+                    decay_factor = 0.5  # 默认衰减因子
+                else:
+                    # 添加索引边界检查
+                    if goal_index < len(value_system_priority.decay_factors):
+                        decay_factor = value_system_priority.decay_factors[goal_index]
+                    else:
+                        # 可选：记录日志或设置默认值
+                        decay_factor = 0.5  # 默认衰减因子
 
                     # 计算累计贡献：上一周期累计值 * 衰减因子 + 当前周期贡献
                     cumulative_value = previous_contributions.get(goal_name, 0) * decay_factor + contribution
                     cumulative_goal_contributions[goal_name] = cumulative_value if cumulative_value != 0 else random.uniform(0.1, 1)  # 替换可能的 0 值
 
-        previous_lifemeanings.append(lifemeaning)
-        life_meaning_data.append(lifemeaning.life_meaning)
-        cumulative_life_meaning_data.append(cumulative_lifemeaning.cumulative_life_meaning)
+            previous_lifemeanings.append(lifemeaning)
+            life_meaning_data.append(lifemeaning.life_meaning)
+            cumulative_life_meaning_data.append(cumulative_lifemeaning.cumulative_life_meaning)
 
-        # 保存每个ValueGoal的贡献数据
-        life_meaning_by_goal.append(goal_contributions)
-        cumulative_life_meaning_by_goal.append(cumulative_goal_contributions)
+            # 保存每个ValueGoal的贡献数据
+            life_meaning_by_goal.append(goal_contributions)
+            cumulative_life_meaning_by_goal.append(cumulative_goal_contributions)
 
     return life_meaning_data, cumulative_life_meaning_data, life_meaning_by_goal, cumulative_life_meaning_by_goal, len(action_plans)
 
@@ -334,13 +376,10 @@ if __name__ == "__main__":
         exit(1)
 
     # 构建元行动
-    try:
-        with transaction.atomic():
-            value_goals = ValueGoal.objects.all()
-            meta_actions = build_meta_actions(values_data, value_goals)
-    except Exception as e:
-        logger.error("构建元行动时发生错误: %s", e)
-        exit(1)
+    value_goals = list(ValueGoal.objects.all())  # 确保是最新数据
+    value_goal_ids = {vg.id: vg for vg in value_goals}
+    value_goal_names = {vg.name: vg for vg in value_goals}
+    meta_actions = build_meta_actions(values_data, value_goals)
 
     # 构建行动计划
     try:
