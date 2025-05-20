@@ -85,6 +85,7 @@
 - **life_meaning** 每轮的行动计划执行后的人生意义数值
 
 人生意义数值的计算算法：
+
 $$
 life\_meaning=\sum_{0,0}^{i,j}{(pv_{actions_{i}} \times achievement\_rate_{actions_{i}} \times weight_{MetaActionCausationValueGoal_{i,j}}  \times confidence_{MetaActionCausationValueGoal_{i,j}} \times weight_{valueGoal_{j}})} 
 $$
