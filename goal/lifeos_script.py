@@ -285,9 +285,10 @@ def simulate(value_system_priority, action_plans):
                     goal_contributions[goal_name] += contribution or random.uniform(0.1, 1)  # 替换可能的 0 值
 
         # 累计每个ValueGoal的贡献
+        # 初始化累计字典（无论是否为空）
         if not cumulative_life_meaning_by_goal:
-            # 首个周期，初始化累计字典
-            cumulative_goal_contributions = {k: v if v != 0 else random.uniform(0.1, 1) for k, v in goal_contributions.items()}
+            cumulative_goal_contributions = {k: v if v != 0 else random.uniform(0.1, 1) 
+                                          for k, v in goal_contributions.items()}
         else:
             # 后续周期，添加上一周期的累计值并应用衰减因子
             cumulative_goal_contributions = {}
@@ -306,20 +307,19 @@ def simulate(value_system_priority, action_plans):
                     if goal_index < len(value_system_priority.decay_factors):
                         decay_factor = value_system_priority.decay_factors[goal_index]
                     else:
-                        # 可选：记录日志或设置默认值
                         decay_factor = 0.5  # 默认衰减因子
 
                     # 计算累计贡献：上一周期累计值 * 衰减因子 + 当前周期贡献
                     cumulative_value = previous_contributions.get(goal_name, 0) * decay_factor + contribution
-                    cumulative_goal_contributions[goal_name] = cumulative_value if cumulative_value != 0 else random.uniform(0.1, 1)  # 替换可能的 0 值
+                    cumulative_goal_contributions[goal_name] = cumulative_value if cumulative_value != 0 else random.uniform(0.1, 1)
 
-            previous_lifemeanings.append(lifemeaning)
-            life_meaning_data.append(lifemeaning.life_meaning)
-            cumulative_life_meaning_data.append(cumulative_lifemeaning.cumulative_life_meaning)
-
-            # 保存每个ValueGoal的贡献数据
-            life_meaning_by_goal.append(goal_contributions)
-            cumulative_life_meaning_by_goal.append(cumulative_goal_contributions)
+        # 不论是否为空，始终更新列表
+        previous_lifemeanings.append(lifemeaning)
+        life_meaning_data.append(lifemeaning.life_meaning)
+        cumulative_life_meaning_data.append(cumulative_lifemeaning.cumulative_life_meaning)
+        # 确保每次循环都更新贡献数据
+        life_meaning_by_goal.append(goal_contributions)
+        cumulative_life_meaning_by_goal.append(cumulative_goal_contributions)
 
     return life_meaning_data, cumulative_life_meaning_data, life_meaning_by_goal, cumulative_life_meaning_by_goal, len(action_plans)
 
