@@ -146,3 +146,29 @@ $$
 - LifeOS 修行、回忆、体验、平和、幸福
   - 构建个人笔记、**KS (Knowledge System) 知识架构体系**、**KGM (Knowledge Graph Map) 知识导航地图**、**KP (Knowledge Particle) 知识元胞** 使个人的认知框架（[[世界观]]）不断趋近于本质真理
   - 不同方式回忆不同 年龄 $age$ 段的经历和感受，增加人生的意义感，体验幸福
+
+
+lifeos_script.py 是一个用于构建和模拟价值目标体系的脚本，主要功能包括：
+
+1. **数据初始化与清理**：
+   - 从 values.json 文件加载配置数据。
+   - 清理数据库中已有的相关数据，确保每次运行时环境干净。
+
+2. **构建价值目标体系**：
+   - 创建价值目标分类（ValueGoalCategory）树形结构。
+   - 根据 JSON 数据创建价值目标（ValueGoal）及其权重（ValueGoalWeight）。
+
+3. **构建元行动**：
+   - 基于价值目标生成元行动（MetaAction），并建立因果关系（MetaActionCausationValueGoal）。
+
+4. **构建行动计划**：
+   - 随机生成多个周期的行动计划（ActionPlan），每个计划包含若干具体行动（Action）。
+
+5. **运行仿真**：
+   - 模拟行动计划的执行过程，计算每个行动对价值目标的影响。
+   - 生成人生意义（Lifemeaning）和累计人生意义（CumulativeLifemeaning）数据。
+
+6. **数据输出**：
+   - 将仿真结果导出到 simulation_output.json 文件，便于后续可视化或分析。
+
+该脚本主要用于构建一个复杂的决策支持系统，通过量化不同行动对人生意义的贡献，帮助用户理解和优化其行为模式。
