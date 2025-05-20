@@ -253,99 +253,22 @@
                     lifespanStages
                 };
 
-                // 绘制折线图
-                drawLineChart('#life-meaning-trend', lifeMeaningData, '人生意義趋势');
-                drawLineChart('#cumulative-life-meaning-trend', cumulativeLifeMeaningData, '累计人生意義趋势');
+                // 添加默认推荐数据
+                window.visualizationData.valueGoalsWeights = {
+                    '家庭': 0.4,
+                    '健康': 0.3,
+                    '学习': 0.2,
+                    '社交': 0.1
+                };
 
-                // 绘制饼图
-                if (lifeMeaningByGoal.length > 0) {
-                    // 合并所有周期的数据，生成总贡献饼图
-                    const aggregatedLifeMeaningByGoal = {};
-                    lifeMeaningByGoal.forEach(entry => {
-                        Object.entries(entry).forEach(([key, value]) => {
-                            if (!aggregatedLifeMeaningByGoal[key]) {
-                                aggregatedLifeMeaningByGoal[key] = 0;
-                            }
-                            aggregatedLifeMeaningByGoal[key] += value;
-                        });
-                    });
+                window.visualizationData.recommendedActions = [
+                    "多陪伴家人，建立安全感",
+                    "培养良好的作息和饮食习惯",
+                    "鼓励探索感兴趣的事物，激发好奇心"
+                ];
 
-                    const pieData = Object.keys(aggregatedLifeMeaningByGoal).map(key => ({
-                        name: key,
-                        value: aggregatedLifeMeaningByGoal[key]
-                    }));
-
-                    drawPieChart('#value-goal-contribution', pieData, '每个价值目標の人生意義貢献');
-                } else {
-                    console.error('Invalid or missing life_meaning_by_goal data');
-                }
-
-                // 绘制累计饼图
-                if (cumulativeLifeMeaningByGoal.length > 0) {
-                    const aggregatedCumulativeLifeMeaningByGoal = {};
-                    cumulativeLifeMeaningByGoal.forEach(entry => {
-                        Object.entries(entry).forEach(([key, value]) => {
-                            if (!aggregatedCumulativeLifeMeaningByGoal[key]) {
-                                aggregatedCumulativeLifeMeaningByGoal[key] = 0;
-                            }
-                            aggregatedCumulativeLifeMeaningByGoal[key] += value;
-                        });
-                    });
-
-                    const cumulativePieData = Object.keys(aggregatedCumulativeLifeMeaningByGoal).map(key => ({
-                        name: key,
-                        value: aggregatedCumulativeLifeMeaningByGoal[key]
-                    }));
-
-                    drawPieChart('#cumulative-value-goal-contribution', cumulativePieData, '每个价值目標の累计人生意義貢献');
-                } else {
-                    console.error('Invalid or missing cumulative_life_meaning_by_goal data');
-                }
-
-                // 添加推荐价值目标权重和具体行动建议区域
-                const recommendationSection = d3.select("body")
-                  .append("div")
-                    .attr("class", "note-section")
-                    .style("max-width", "1000px")
-                    .style("margin", "40px auto")
-                    .style("padding", "20px")
-                    .style("background", "#fefefe")
-                    .style("border-left", "6px solid #e74c3c")
-                    .style("border-radius", "6px")
-                    .style("box-shadow", "0 2px 8px rgba(0, 0, 0, 0.08)");
-
-                recommendationSection.append("div")
-                    .attr("class", "note-header")
-                    .style("font-size", "18px")
-                    .style("font-weight", "bold")
-                    .style("margin-bottom", "10px")
-                    .style("color", "#2c3e50")
-                    .text("当前年龄段推荐");
-
-                const recommendationList = recommendationSection.append("div")
-                    .attr("class", "note-body")
-                    .append("ul")
-                    .style("list-style-type", "none")
-                    .style("padding-left", "0")
-                    .selectAll("li")
-                    .data(["value_goals", "actions"])
-                    .enter()
-                    .append("li")
-                    .style("margin-bottom", "10px")
-                    .html(d => {
-                        if (d === "value_goals") {
-                            return `<strong>推荐价值目標权重:</strong><br>` + 
-                                Object.entries(window.visualizationData.valueGoalsWeights || {})
-                                    .map(([goal, weight]) => `- ${goal}: ${weight * 100:.0f}%`)
-                                    .join("<br>");
-                        } else {
-                            return `<strong>具体行動建议:</strong><br>` + 
-                                (window.visualizationData.recommendedActions || [])
-                                    .map(action => `- ${action}`)
-                                    .join("<br>");
-                        }
-                    });
-
+                // 初始化图表
+                initializeCharts();
             })
             .catch(error => {
                 console.error('Error loading JSON data:', error);
