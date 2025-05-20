@@ -97,7 +97,7 @@
 
                 // 绘制柱状图
                 if (lifeMeaningByGoal.length > 0) {
-                    drawBarChart('#value-goal-contribution', lifeMeaningByGoal, '每个价值目标的认证意义贡献');
+                    drawBarChart('#value-goal-contribution', lifeMeaningByGoal, '每个价值目标的人生意义贡献');
                 } else {
                     console.error('Invalid or missing life_meaning_by_goal data');
                 }
@@ -216,30 +216,35 @@
         const width = 900 - margin.left - margin.right;
         const height = 500 - margin.top - margin.bottom;
 
-        // 合并所有对象的数据，计算每个类别的总和
-        const mergedData = {};
-        dataArray.forEach(entry => {
-            Object.entries(entry).forEach(([key, value]) => {
-                if (!mergedData[key]) {
-                    mergedData[key] = 0;
-                }
-                mergedData[key] += value;
-            });
+        // 获取所有价值目标类别
+        const categories = Object.keys(dataArray[0] || {});
+        
+        // 创建每个周期的数据映射
+        const seriesData = dataArray.map((entry, index) => {
+            return categories.map(category => ({
+                name: category,
+                value: entry[category],
+                group: `周期 ${index + 1}`
+            }));
         });
 
-        const data = Object.keys(mergedData).map(key => ({
-            category: key,
-            value: mergedData[key]
-        }));
-
-        const x = d3.scaleBand()
-            .domain(data.map(d => d.category))
+        const x0 = d3.scaleBand()
+            .domain(seriesData.map((d, i) => `기간 ${i + 1}`))
             .range([0, width])
+            .padding(0.2);
+
+        const x1 = d3.scaleBand()
+            .domain(categories)
+            .range([0, x0.bandwidth()])
             .padding(0.1);
 
         const y = d3.scaleLinear()
-            .domain([0, d3.max(data, d => d.value)]).nice()
+            .domain([0, d3.max(seriesData, s => d3.sum(s, d => d.value))]).nice()
             .range([height, 0]);
+
+        const color = d3.scaleOrdinal()
+            .domain(categories)
+            .range(d3.schemeCategory10);
 
         const svg = d3.select(selector)
             .attr("width", width + margin.left + margin.right)
@@ -251,7 +256,7 @@
         svg.append("g")
             .attr("class", "axis")
             .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x))
+            .call(d3.axisBottom(x0))
           .selectAll("text")
             .attr("transform", "rotate(-45)")
             .style("text-anchor", "end");
@@ -269,21 +274,27 @@
                 .tickFormat("")
             );
 
-        // 绘制柱形
-        const bars = svg.selectAll(".bar")
-            .data(data)
+        // 创建分组柱形
+        const groups = svg.selectAll(".bar-group")
+            .data(seriesData)
+            .enter().append("g")
+            .attr("class", "bar-group")
+            .attr("transform", (d, i) => `translate(${x0(`기간 ${i + 1}`)},0)`);
+
+        groups.selectAll(".bar")
+            .data(d => d)
             .enter().append("rect")
             .attr("class", "bar")
-            .attr("x", d => x(d.category))
+            .attr("x", d => x1(d.name))
             .attr("y", d => y(d.value))
-            .attr("width", x.bandwidth())
+            .attr("width", x1.bandwidth())
             .attr("height", d => height - y(d.value))
-            .style("fill", "steelblue")
+            .style("fill", d => color(d.name))
             .on("mouseover", function(event, d) {
                 tooltip.transition()
                     .duration(200)
                     .style("opacity", .9);
-                tooltip.html(`类别: ${d.category}<br/>값: ${d.value.toFixed(2)}`)
+                tooltip.html(`类别: ${d.name}<br/>기간: ${d.group}<br/>값: ${d.value.toFixed(2)}`)
                     .style("left", (event.pageX + 5) + "px")
                     .style("top", (event.pageY - 28) + "px")
                     .style("transform", "scale(1.1)");
@@ -295,6 +306,29 @@
                 d3.select(this)
                     .style("transform", "scale(1)");
             });
+
+        // 添加图例
+        const legend = svg.append("g")
+            .attr("font-size", "12px")
+            .attr("transform", `translate(0,${height + 20})`)
+            .selectAll("g")
+            .data(categories.slice().reverse())
+            .enter().append("g")
+            .attr("transform", (d, i) => `translate(${i * 120},0)`) 
+            .attr("class", "legend-item");
+
+        legend.append("rect")
+            .attr("x", 0)
+            .attr("width", 15)
+            .attr("height", 15)
+            .attr("fill", color)
+            .attr("opacity", 0.8);
+
+        legend.append("text")
+            .attr("x", 20)
+            .attr("y", 9)
+            .attr("dy", "0.35em")
+            .text(d => d);
 
         // 添加标题
         svg.append("text")
