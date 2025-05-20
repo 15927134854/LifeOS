@@ -182,8 +182,20 @@
                     
                     const cumulativeLifeMeaningByGoal = Array.isArray(data.cumulative_life_meaning_by_goal) ? 
                         data.cumulative_life_meaning_by_goal : [];
-                    const lifespanStages = Array.isArray(data.lifespan_stages) ? 
-                        data.lifespan_stages : [];
+                    
+                    // 处理 lifespanStages 数据
+                    let lifespanStages = [];
+                    if (data.lifespan_stages && Array.isArray(data.lifespan_stages)) {
+                        // 如果已经是标准格式，直接使用
+                        lifespanStages = data.lifespan_stages;
+                    } else if (data.lifespan_stages && typeof data.lifespan_stages === 'object') {
+                        // 如果是对象而不是数组，尝试转换
+                        lifespanStages = Object.entries(data.lifespan_stages).map(([key, stage]) => ({
+                            stage_name: stage.stage_name || stage.name || key,
+                            start_age: stage.start_age || 0,
+                            end_age: stage.end_age || 0
+                        }));
+                    }
 
                     // 将数据附加到 window 对象，便于其他函数访问
                     window.visualizationData = {
@@ -697,7 +709,7 @@
             stageContainer.innerHTML = '';
             
             // 如果没有生命周期阶段数据，显示默认提示
-            if (!window.visualizationData || !window.visualizationData.lifespanStages || window.visualizationData.lifespanStages.length === 0) {
+            if (!window.visualizationData || !window.visualizationData.lifespanStages || !Array.isArray(window.visualizationData.lifespanStages) || window.visualizationData.lifespanStages.length === 0) {
                 const defaultStage = document.createElement('p');
                 defaultStage.textContent = '暂无生命周期阶段信息';
                 defaultStage.style.color = '#666';
@@ -708,7 +720,7 @@
             
             // 创建标题
             const title = document.createElement('h3');
-            title.textContent = '生命周期阶段信息';
+            title.textContent = '生命周期阶段情報';
             title.style.color = '#2c3e50';
             title.style.marginBottom = '15px';
             stageContainer.appendChild(title);
@@ -719,9 +731,33 @@
             stageList.style.paddingLeft = '0';
             
             for (const stage of window.visualizationData.lifespanStages) {
+                // 确保 stage_name 存在
+                let stageName = '未知阶段';
+                let startAge = 0;
+                let endAge = 0;
+                
+                // 尝试从多种可能的字段获取阶段名称
+                if (typeof stage === 'object') {
+                    stageName = stage.stage_name || stage.name || stage.stage || '未知阶段';
+                    
+                    // 尝试解析起始和结束年龄
+                    if (stage.age_range) {
+                        const ageMatch = stage.age_range.match(/(\d+)-(\d+)/);
+                        if (ageMatch) {
+                            startAge = parseInt(ageMatch[1]);
+                            endAge = parseInt(ageMatch[2]);
+                        }
+                    } else {
+                        startAge = stage.start_age || stage.min_age || 0;
+                        endAge = stage.end_age || stage.max_age || 0;
+                    }
+                } else if (typeof stage === 'string') {
+                    stageName = stage;
+                }
+                
                 const listItem = document.createElement('li');
                 listItem.style.margin = '8px 0';
-                listItem.innerHTML = `<strong>${stage.stage_name || stage.name}</strong>: ${stage.start_age} - ${stage.end_age} 岁`;
+                listItem.innerHTML = `<strong>${stageName}</strong>: ${startAge} - ${endAge} 岁`;
                 stageList.appendChild(listItem);
             }
             
