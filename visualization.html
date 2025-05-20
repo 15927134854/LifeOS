@@ -95,15 +95,47 @@
                 drawLineChart('#life-meaning-trend', lifeMeaningData, '人生意義趋势');
                 drawLineChart('#cumulative-life-meaning-trend', cumulativeLifeMeaningData, '累计人生意義趋势');
 
-                // 绘制柱状图
+                // 绘制饼图
                 if (lifeMeaningByGoal.length > 0) {
-                    drawBarChart('#value-goal-contribution', lifeMeaningByGoal, '每个价值目标的人生意義贡献');
+                    // 合并所有周期的数据，生成总贡献饼图
+                    const aggregatedLifeMeaningByGoal = {};
+                    lifeMeaningByGoal.forEach(entry => {
+                        Object.entries(entry).forEach(([key, value]) => {
+                            if (!aggregatedLifeMeaningByGoal[key]) {
+                                aggregatedLifeMeaningByGoal[key] = 0;
+                            }
+                            aggregatedLifeMeaningByGoal[key] += value;
+                        });
+                    });
+
+                    const pieData = Object.keys(aggregatedLifeMeaningByGoal).map(key => ({
+                        name: key,
+                        value: aggregatedLifeMeaningByGoal[key]
+                    }));
+
+                    drawPieChart('#value-goal-contribution', pieData, '每个价值目标的人生意義贡献');
                 } else {
                     console.error('Invalid or missing life_meaning_by_goal data');
                 }
 
+                // 绘制累计饼图
                 if (cumulativeLifeMeaningByGoal.length > 0) {
-                    drawBarChart('#cumulative-value-goal-contribution', cumulativeLifeMeaningByGoal, '每个价值目標の累计人生意義贡献');
+                    const aggregatedCumulativeLifeMeaningByGoal = {};
+                    cumulativeLifeMeaningByGoal.forEach(entry => {
+                        Object.entries(entry).forEach(([key, value]) => {
+                            if (!aggregatedCumulativeLifeMeaningByGoal[key]) {
+                                aggregatedCumulativeLifeMeaningByGoal[key] = 0;
+                            }
+                            aggregatedCumulativeLifeMeaningByGoal[key] += value;
+                        });
+                    });
+
+                    const cumulativePieData = Object.keys(aggregatedCumulativeLifeMeaningByGoal).map(key => ({
+                        name: key,
+                        value: aggregatedCumulativeLifeMeaningByGoal[key]
+                    }));
+
+                    drawPieChart('#cumulative-value-goal-contribution', cumulativePieData, '每个价值目標の累计人生意義贡献');
                 } else {
                     console.error('Invalid or missing cumulative_life_meaning_by_goal data');
                 }
@@ -142,12 +174,12 @@
         svg.append("g")
             .attr("class", "axis")
             .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x).ticks(data.length));
+            .call(d3.axisBottom(x).tickFormat(d => `${d}周期`));  // 横轴显示为“周期”
 
         // 添加 Y 轴
         svg.append("g")
             .attr("class", "axis")
-            .call(d3.axisLeft(y));
+            .call(d3.axisLeft(y).tickFormat(d => `${d}意义값`));  // 纵轴显示为“意义값”
 
         // 添加网格线
         svg.append("g")
@@ -481,6 +513,100 @@
                 d3.select(".drilldown-chart").remove();
                 d3.select(this).remove();
             });
+    }
+
+    // 绘制饼图/圆环图
+    function drawPieChart(selector, data, title) {
+        const margin = {top: 20, right: 20, bottom: 20, left: 20};
+        const width = 900 - margin.left - margin.right;
+        const height = 500 - margin.top - margin.bottom;
+        const radius = Math.min(width, height) / 2 - Math.max(margin.top, margin.bottom);
+
+        const color = d3.scaleOrdinal()
+            .domain(data.map(d => d.name))
+            .range(d3.schemeCategory10);
+
+        const svg = d3.select(selector)
+            .attr("width", width)
+            .attr("height", height)
+          .append("g")
+            .attr("transform", `translate(${width / 2},${height / 2})`);
+
+        const pie = d3.pie()
+            .value(d => d.value)
+            .sort(null);
+
+        const arcs = svg.selectAll(".arc")
+            .data(pie(data))
+            .enter().append("g")
+            .attr("class", "arc");
+
+        // 绘制扇形
+        arcs.append("path")
+            .attr("d", d3.arc().innerRadius(0).outerRadius(radius))
+            .attr("fill", d => color(d.data.name))
+            .on("mouseover", function(event, d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html(`类别: ${d.data.name}<br/>값: ${d.data.value.toFixed(2)}`)
+                    .style("left", (event.pageX + 5) + "px")
+                    .style("top", (event.pageY - 28) + "px")
+                    .style("transform", "scale(1.1)");
+            })
+            .on("mouseout", function(d) {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+                d3.select(this)
+                    .style("transform", "scale(1)");
+            })
+            .on("click", function(event, d) {
+                alert(`详细情報:\n类别: ${d.data.name}\n값: ${d.data.value.toFixed(2)}`);
+            });
+
+        // 添加文本标签
+        arcs.append("text")
+            .attr("transform", d => `translate(${d3.arc().outerRadius(radius + 10).centroid(d)})`)
+            .attr("dy", ".35em")
+            .style("text-anchor", "middle")
+            .text(d => d.data.name);
+
+        // 添加图例
+        const legend = svg.append("g")
+            .attr("font-size", "12px")
+            .attr("transform", `translate(${-radius - 60},${-radius - 40})`)
+            .selectAll("g")
+            .data(data)
+            .enter().append("g")
+            .attr("transform", (d, i) => `translate(0,${i * 20})`)
+            .attr("class", "legend-item");
+
+        legend.append("rect")
+            .attr("x", 0)
+            .attr("width", 15)
+            .attr("height", 15)
+            .attr("fill", d => color(d.name))
+            .attr("opacity", 0.8);
+
+        legend.append("text")
+            .attr("x", 20)
+            .attr("y", 9)
+            .attr("dy", "0.35em")
+            .text(d => `${d.name}: ${d.value.toFixed(2)}`);
+
+        // 添加标题
+        svg.append("text")
+            .attr("x", 0)
+            .attr("y", -radius - 60)
+            .attr("text-anchor", "middle")
+            .style("font-size", "18px")
+            .text(title);
+
+        // 添加提示框
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
     }
 </script>
 </body>
