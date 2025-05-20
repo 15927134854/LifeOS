@@ -6,8 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="0ca0a285-a183-49cf-adf5-7354d2f6ca6c" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/goal/simulation_output.json" beforeDir="false" afterPath="$PROJECT_DIR$/goal/simulation_output.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/visualization.html" beforeDir="false" afterPath="$PROJECT_DIR$/visualization.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/goal/lifeos_script.py" beforeDir="false" afterPath="$PROJECT_DIR$/goal/lifeos_script.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/goal/simulation_output.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/run_visualization.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/visualization.html" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -55,7 +57,7 @@
       <recent name="D:\运维仿真\LifeOS" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.run_visualization">
+  <component name="RunManager" selected="Python.lifeos_script">
     <configuration name="lifeos_script" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="LifeOS" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -163,8 +165,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.run_visualization" />
         <item itemvalue="Python.lifeos_script" />
+        <item itemvalue="Python.run_visualization" />
         <item itemvalue="Python.start_visualization" />
         <item itemvalue="Python.start_server (1)" />
         <item itemvalue="Python.start_server" />

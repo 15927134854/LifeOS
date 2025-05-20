@@ -340,6 +340,117 @@ def simulate(value_system_priority, action_plans):
     return life_meaning_data, cumulative_life_meaning_data, life_meaning_by_goal, cumulative_life_meaning_by_goal, len(action_plans)
 
 
+# 新增推荐函数
+
+def recommend_actions_by_age(age, value_goals):
+    """
+    根据当前年龄和价值目标生成推荐行动建议
+    
+    参数:
+        age (int): 当前年龄
+        value_goals (list): 价值目标列表
+    
+    返回:
+        dict: 推荐结果，包含权重和行动建议
+    """
+    # 定义各年龄段的推荐权重规则
+    if age <= 12:
+        weights = {
+            '家庭': 0.5,
+            '健康': 0.3,
+            '学习': 0.2,
+            '社交': 0.1
+        }
+        actions = [
+            "多陪伴家人，建立安全感",
+            "培养良好的作息和饮食习惯",
+            "鼓励探索感兴趣的事物，激发好奇心"
+        ]
+    elif age <= 19:
+        weights = {
+            '学习': 0.4,
+            '健康': 0.3,
+            '社交': 0.2,
+            '家庭': 0.1
+        }
+        actions = [
+            "制定合理的学习计划，平衡学业与休息",
+            "加强体育锻炼，保持身体健康",
+            "积极参与社交活动，拓展人际关系"
+        ]
+    elif age <= 35:
+        weights = {
+            '学习': 0.3,
+            '职业发展': 0.3,
+            '健康': 0.2,
+            '社交': 0.15,
+            '家庭': 0.05
+        }
+        actions = [
+            "持续学习新技能，提升职场竞争力",
+            "保持工作与生活的平衡",
+            "建立稳定的人际关系网络"
+        ]
+    elif age <= 50:
+        weights = {
+            '职业发展': 0.3,
+            '家庭': 0.3,
+            '健康': 0.2,
+            '财务规划': 0.15,
+            '社交': 0.05
+        }
+        actions = [
+            "关注职业发展的长期规划",
+            "重视家庭关系的维护与沟通",
+            "定期体检，关注身体健康"
+        ]
+    elif age <= 65:
+        weights = {
+            '家庭': 0.4,
+            '健康': 0.3,
+            '休闲娱乐': 0.2,
+            '财务规划': 0.1
+        }
+        actions = [
+            "享受家庭生活，传承家族文化",
+            "注重健康管理，预防慢性疾病",
+            "发展兴趣爱好，丰富退休生活"
+        ]
+    else:
+        weights = {
+            '家庭': 0.5,
+            '健康': 0.3,
+            '心理慰藉': 0.2
+        }
+        actions = [
+            "珍惜与家人的相处时光",
+            "保持适度的身体活动",
+            "记录人生感悟，留下精神财富"
+        ]
+
+    # 过滤掉不在价值目标列表中的目标
+    filtered_weights = {k: v for k, v in weights.items() if not value_goals or k in value_goals}
+
+    # 如果过滤后为空，使用默认权重
+    if not filtered_weights:
+        filtered_weights = {
+            '家庭': 0.4,
+            '健康': 0.3,
+            '学习': 0.2,
+            '社交': 0.1
+        }
+        actions = [
+            "多陪伴家人，建立安全感",
+            "培养良好的作息和饮食习惯",
+            "鼓励探索感兴趣的事物，激发好奇心"
+        ]
+
+    return {
+        'weights': filtered_weights,
+        'actions': actions
+    }
+
+
 def recommend_actions_by_age(age, value_goals):
     """
     根据年龄推荐价值目标的优先级和具体行动建议。
@@ -522,9 +633,9 @@ if __name__ == "__main__":
         ],
         "lifespan_stages": [
             {
-                "stage_name": stage[2],
-                "start_age": stage[0],
-                "end_age": stage[1]
+                "stage": stage[2],
+                "age_range": f"{stage[0]}-{stage[1]}岁",
+                "duration": f"{stage[1] - stage[0] + 1}年"
             } for stage in system.lifespan_stages  # 使用构建的价值体系中的生命周期阶段数据
         ]  # 添加结构化的人生阶段信息
     }
@@ -532,34 +643,9 @@ if __name__ == "__main__":
     # 写入simulation_output.json文件
     with open('simulation_output.json', 'w', encoding='utf-8') as f:
         json.dump(output_data, f, ensure_ascii=False, indent=4)
-        
+
     print("数据已导出到 simulation_output.json")
     print("lifespan_stages 数据:", [stage[2] for stage in system.lifespan_stages])  # 更清晰地输出生命周期阶段名称
-
-    # 生成用于D3.js可视化的数据结构
-    output_data = {
-        "life_meaning": life_meaning_data,
-        "cumulative_life_meaning": cumulative_life_meaning_data,
-        "life_meaning_by_goal": [
-            {**{k: float(v) for k, v in item.items()}} for item in life_meaning_by_goal
-        ],
-        "cumulative_life_meaning_by_goal": [
-            {**{k: float(v) for k, v in item.items()}} for item in cumulative_life_meaning_by_goal
-        ],
-        "lifespan_stages": [
-            {
-                "stage_name": stage[2],
-                "start_age": stage[0],
-                "end_age": stage[1]
-            } for stage in system.lifespan_stages  # 使用构建的价值体系中的生命周期阶段数据
-        ]  # 添加结构化的人生阶段信息
-    }
-
-    # 写入simulation_output.json文件
-    with open('simulation_output.json', 'w', encoding='utf-8') as f:
-        json.dump(output_data, f, ensure_ascii=False, indent=4)
-
-    print("数据已导出到 simulation_output.json")
 
     # 确保 simulation_output 包含必要的字段
     simulation_output = {
@@ -576,10 +662,6 @@ if __name__ == "__main__":
         value_goals = list(simulation_output['life_meaning_by_goal'][0].keys())
     else:
         value_goals = []  # 或者根据需求进行默认赋值
-
-    # 在原有模拟逻辑中加入行动计划推荐
-    # 假设我们已经运行了模拟并获取了 value_goals 列表
-    value_goals = list(simulation_output.get('life_meaning_by_goal', [{}])[0].keys())
 
     # 获取当前年龄（示例）
     current_age = 28  # 可从用户输入或数据源读取
