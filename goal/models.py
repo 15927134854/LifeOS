@@ -52,6 +52,7 @@ class ValueSystemPriority(models.Model):
     values = models.ManyToManyField(ValueGoal, through='ValueGoalWeight', related_name='systems',
                                     verbose_name="包含的价值目标")
     decay_factors = models.JSONField(default=list, verbose_name="衰减因子")
+    lifespan_stages = models.JSONField(default=list, verbose_name="生命周期阶段")  # 添加生命周期阶段字段
 
     def get_weights(self):
         return list(self.valuegoalweight_set.values_list('weight', flat=True))
@@ -185,6 +186,10 @@ class MetaAction(models.Model):
         verbose_name="行动间协同/拮抗效应关系 `MetaAction`←(Interaction)→`MetaAction`",
         blank=True
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.lifespan_stages = []  # 添加生命周期阶段属性
 
     def __str__(self):
         return self.name

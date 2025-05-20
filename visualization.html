@@ -3,15 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人生意义データ可视化</title>
+    <title>人生意義データ可视化</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Microsoft YaHei', SimSun, Arial, sans-serif;
             margin: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
         }
         svg {
-            background-color: #f9f9f9;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
         }
         .axis path,
         .axis line {
@@ -41,15 +54,105 @@
         .tooltip {
             position: absolute;
             text-align: center;
-            width: 120px;
+            width: 160px;
             height: auto;
-            padding: 5px;
-            font: 12px sans-serif;
-            background: lightsteelblue;
+            padding: 8px;
+            font: 14px 'Microsoft YaHei', sans-serif;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
             border: 0px;
             border-radius: 8px;
             pointer-events: none;
             opacity: 0;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .drilldown-chart {
+            z-index: 11;
+            position: relative;
+        }
+
+        .close-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 12;
+            padding: 10px 20px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+
+        .close-button:hover {
+            transform: scale(1.05);
+        }
+
+        .overlay-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .legend-item {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .legend-item:hover {
+            transform: translateX(5px);
+        }
+
+        .chart-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            margin-bottom: 40px;
+        }
+
+        .note-section {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #fefefe;
+            border-left: 6px solid #3498db;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .note-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .note-body {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        @media (max-width: 768px) {
+            .note-section {
+                margin: 20px 10px;
+                padding: 15px;
+            }
         }
     </style>
 </head>
@@ -59,22 +162,57 @@
 
 <!-- 图表容器 -->
 <div id="charts">
-    <h2>人生意義趋势</h2>
-    <svg id="life-meaning-trend" width="900" height="500"></svg>
+    <div class="chart-container">
+        <h2>人生意義趋势</h2>
+        <svg id="life-meaning-trend" width="900" height="500"></svg>
+    </div>
 
-    <h2>累计人生意義趋势</h2>
-    <svg id="cumulative-life-meaning-trend" width="900" height="500"></svg>
+    <div class="chart-container">
+        <h2>累计人生意義趋势</h2>
+        <svg id="cumulative-life-meaning-trend" width="900" height="500"></svg>
+    </div>
 
-    <h2>每个价值目标的人生意義贡献</h2>
-    <svg id="value-goal-contribution" width="900" height="500"></svg>
+    <div class="chart-container">
+        <h2>每个价值目標的人生意義贡献</h2>
+        <svg id="value-goal-contribution" width="900" height="500"></svg>
+    </div>
 
-    <h2>每个价值目标的累计人生意義贡献</h2>
-    <svg id="cumulative-value-goal-contribution" width="900" height="500"></svg>
+    <div class="chart-container">
+        <h2>每个价值目標の累计人生意義贡献</h2>
+        <svg id="cumulative-value-goal-contribution" width="900" height="500"></svg>
+    </div>
+</div>
+
+<!-- 认知笔记区域 -->
+<div class="note-section">
+    <div class="note-header">认知笔记</div>
+    <div class="note-body">
+        <p>在下方记录你对不同年龄阶段经历与感受的回忆，构建你的个人认知框架：</p>
+        <textarea id="cognitive-notes" rows="6" placeholder="写下你在不同人生阶段的感受、反思和意义发现... 例如：\n\n5岁：第一次感受到爱与安全感来自家庭。\n18岁：意识到自我独立的重要性，开始探索人生方向。\n30岁：理解到持续成长比短期成功更重要。\n\n请根据你的实际经历补充更多内容..."></textarea>
+        <br><br>
+        <button onclick="saveNotes()" style="padding: 10px 20px; font-size: 16px; background-color: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer;">保存笔记</button>
+    </div>
 </div>
 
 <script>
-    // 在页面加载时获取 simulation_output.json 数据
+    // 本地存储认知笔记
+    function saveNotes() {
+        const notes = document.getElementById('cognitive-notes').value;
+        localStorage.setItem('cognitive_notes', notes);
+        alert('笔记已保存至浏览器本地存储');
+    }
+
+    function loadNotes() {
+        const savedNotes = localStorage.getItem('cognitive_notes');
+        if (savedNotes) {
+            document.getElementById('cognitive-notes').value = savedNotes;
+        }
+    }
+
+    // 页面加载时自动读取笔记
     window.onload = function() {
+        loadNotes();
+
         fetch('goal/simulation_output.json')
             .then(response => {
                 if (!response.ok) {
@@ -113,7 +251,7 @@
                         value: aggregatedLifeMeaningByGoal[key]
                     }));
 
-                    drawPieChart('#value-goal-contribution', pieData, '每个价值目标的人生意義贡献');
+                    drawPieChart('#value-goal-contribution', pieData, '每个价值目標の人生意義貢献');
                 } else {
                     console.error('Invalid or missing life_meaning_by_goal data');
                 }
@@ -135,7 +273,7 @@
                         value: aggregatedCumulativeLifeMeaningByGoal[key]
                     }));
 
-                    drawPieChart('#cumulative-value-goal-contribution', cumulativePieData, '每个价值目標の累计人生意義贡献');
+                    drawPieChart('#cumulative-value-goal-contribution', cumulativePieData, '每个价值目標の累计人生意義貢献');
                 } else {
                     console.error('Invalid or missing cumulative_life_meaning_by_goal data');
                 }
@@ -179,7 +317,7 @@
         // 添加 Y 轴
         svg.append("g")
             .attr("class", "axis")
-            .call(d3.axisLeft(y).tickFormat(d => `${d}意义값`));  // 纵轴显示为“意义값”
+            .call(d3.axisLeft(y).tickFormat(d => `${d}意義値`));  // 纵轴显示为“意義値”
 
         // 添加网格线
         svg.append("g")
@@ -203,12 +341,13 @@
             .attr("class", "dot")
             .attr("cx", (d, i) => x(i))
             .attr("cy", d => y(d))
-            .attr("r", 4)
+            .attr("r", 6)
+            .style("fill", "steelblue")
             .on("mouseover", function(event, d) {
                 tooltip.transition()
                     .duration(200)
                     .style("opacity", .9);
-                tooltip.html(`값: ${d}`)
+                tooltip.html(`周期: ${parseInt(x.invert(event.offsetX)) + 1}<br/>값: ${d.toFixed(2)}<br/><br/>意义说明：根据该周期内的人生行動与价值目標関連度総合計算で得出。`)
                     .style("left", (event.pageX + 5) + "px")
                     .style("top", (event.pageY - 28) + "px")
                     .style("transform", "scale(1.1)");
@@ -220,6 +359,17 @@
                 d3.select(this)
                     .style("transform", "scale(1)");
             });
+
+        // 添加周期背景条纹以增强可读性
+        svg.selectAll(".band")
+            .data(data)
+            .enter().append("rect")
+            .attr("class", "band")
+            .attr("x", (d, i) => x(i) - x.bandwidth() / 2)
+            .attr("y", 0)
+            .attr("width", x.bandwidth())
+            .attr("height", height)
+            .style("fill", (d, i) => i % 2 === 0 ? "rgba(0, 150, 255, 0.05)" : "none");
 
         // 添加标题
         svg.append("text")
@@ -248,7 +398,7 @@
         const width = 900 - margin.left - margin.right;
         const height = 500 - margin.top - margin.bottom;
 
-        // 获取所有价值目标类别
+        // 获取所有价值目標类别
         const categories = Object.keys(dataArray[0] || {});
         
         // 创建每个周期的数据映射
@@ -284,7 +434,7 @@
           .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
-        // 添加 X 轴
+        // 添加 X 軸
         svg.append("g")
             .attr("class", "axis")
             .attr("transform", `translate(0,${height})`)
@@ -293,12 +443,12 @@
             .attr("transform", "rotate(-45)")
             .style("text-anchor", "end");
 
-        // 添加 Y 轴
+        // 添加 Y 軸
         svg.append("g")
             .attr("class", "axis")
             .call(d3.axisLeft(y));
 
-        // 添加网格线
+        // 添加网格線
         svg.append("g")
             .attr("class", "grid")
             .call(makeGridLines(y)
@@ -306,7 +456,7 @@
                 .tickFormat("")
             );
 
-        // 创建分组柱形
+        // 創建分組柱形
         const groups = svg.selectAll(".bar-group")
             .data(seriesData)
             .enter().append("g")
@@ -339,10 +489,10 @@
                     .style("transform", "scale(1)");
             })
             .on("click", function(event, d) {
-                alert(`详细정보:\n类别: ${d.name}\n기간: ${d.group}\n값: ${d.value.toFixed(2)}`);
+                alert(`詳細情報:\n类别: ${d.name}\n기간: ${d.group}\n값: ${d.value.toFixed(2)}`);
             });
 
-        // 添加图例
+        // 添加圖例
         const legend = svg.append("g")
             .attr("font-size", "12px")
             .attr("transform", `translate(0,${height + 20})`)
@@ -420,12 +570,12 @@
         svg.append("g")
             .attr("class", "axis")
             .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x).ticks(data.length));
+            .call(d3.axisBottom(x).tickFormat(d => `${d}周期`));  // 横轴显示为“周期”
 
         // 添加 Y 轴
         svg.append("g")
             .attr("class", "axis")
-            .call(d3.axisLeft(y));
+            .call(d3.axisLeft(y).tickFormat(d => `${d}意义값`));  // 纵轴显示为“意义값”
 
         // 添加网格线
         svg.append("g")
@@ -449,12 +599,13 @@
             .attr("class", "dot")
             .attr("cx", d => x(d.x))
             .attr("cy", d => y(d.y))
-            .attr("r", 4)
+            .attr("r", 6)
+            .style("fill", "green")
             .on("mouseover", function(event, d) {
                 tooltip.transition()
                     .duration(200)
                     .style("opacity", .9);
-                tooltip.html(`기간: ${d.x + 1}<br/>값: ${d.y.toFixed(2)}`)
+                tooltip.html(`周期: ${d.x + 1}<br/>값: ${d.y.toFixed(2)}<br/><br/>意义说明：钻取视角 - 该类别在不同周期中的表现趋势。`)
                     .style("left", (event.pageX + 5) + "px")
                     .style("top", (event.pageY - 28) + "px")
                     .style("transform", "scale(1.1)");
@@ -467,28 +618,40 @@
                     .style("transform", "scale(1)");
             });
 
+        // 添加周期背景条纹
+        svg.selectAll(".band")
+            .data(data)
+            .enter().append("rect")
+            .attr("class", "band")
+            .attr("x", d => x(d.x) - 10)
+            .attr("y", 0)
+            .attr("width", 20)
+            .attr("height", height)
+            .style("fill", (d, i) => i % 2 === 0 ? "rgba(0, 150, 255, 0.05)" : "none");
+
         // 添加标题
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - margin.top / 2)
             .attr("text-anchor", "middle")
             .style("font-size", "18px")
-            .text(`类别 '${category}' の詳細趋势`);
+            .text(`类别 '${category}' の详细趋势`);
 
         // 添加关闭按钮
         const closeButton = d3.select("body")
             .append("button")
             .attr("class", "close-button")
-            .style("position", "absolute")
-            .style("top", `${window.innerHeight - 550}px`)
+            .style("position", "fixed")
+            .style("top", "20px")
             .style("right", "20px")
-            .style("z-index", 10)
+            .style("z-index", 12)
             .style("padding", "10px 20px")
-            .style("background-color", "#f44336")
+            .style("background-color", "#e74c3c")
             .style("color", "white")
             .style("border", "none")
             .style("border-radius", "4px")
             .style("cursor", "pointer")
+            .style("font-size", "16px")
             .text("关闭")
             .on("click", function() {
                 d3.select(this).remove();
@@ -500,19 +663,28 @@
         const overlay = d3.select("body")
             .append("div")
             .attr("class", "overlay-background")
-            .style("position", "fixed")
-            .style("top", 0)
-            .style("left", 0)
-            .style("width", "100%")
-            .style("height", "100%")
-            .style("background-color", "rgba(0, 0, 0, 0.5)")
-            .style("z-index", 9)
-            .style("display", "block")
-            .on("click", function() {
-                d3.select(".close-button").remove();
-                d3.select(".drilldown-chart").remove();
-                d3.select(this).remove();
+            .style("display", "flex")
+            .style("align-items", "center")
+            .style("justify-content", "center")
+            .on("click", function(event) {
+                // 只有点击遮罩背景时才关闭
+                if (event.target === this) {
+                    d3.select(".close-button").remove();
+                    d3.select(".drilldown-chart").remove();
+                    d3.select(this).remove();
+                }
             });
+
+        // 将图表容器居中显示
+        const chartContainer = d3.select(".drilldown-chart")
+            .style("position", "relative")
+            .style("max-width", "900px")
+            .style("margin", "0 auto");
+
+        // 添加提示框
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
     }
 
     // 绘制饼图/圆环图
@@ -567,10 +739,42 @@
 
         // 添加文本标签
         arcs.append("text")
-            .attr("transform", d => `translate(${d3.arc().outerRadius(radius + 10).centroid(d)})`)
+            .attr("transform", d => `translate(${d3.arc().outerRadius(radius + 20).centroid(d)})`)
             .attr("dy", ".35em")
             .style("text-anchor", "middle")
-            .text(d => d.data.name);
+            .style("font-size", "14px")
+            .style("fill", "#333")
+            .text(d => `${d.data.name}\n${(d.data.value * 100 / totalValue).toFixed(1)}%`);
+
+        // 添加详细说明标签
+        arcs.append("text")
+            .attr("transform", d => `translate(${d3.arc().outerRadius(radius + 40).centroid(d)})`)
+            .attr("dy", ".35em")
+            .style("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("fill", "#666")
+            .text(d => `(${d.data.value.toFixed(2)})`);
+
+        // 添加人生阶段辅助信息
+        arcs.append("text")
+            .attr("transform", d => `translate(${d3.arc().outerRadius(radius + 60).centroid(d)})`)
+            .attr("dy", ".35em")
+            .style("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("fill", "#999")
+            .text(d => {
+                const stage = getLifeStage(d.data.value, totalValue);
+                return stage ? `人生阶段: ${stage}` : "";
+            });
+
+        // 辅助函数：根据值判断人生阶段
+        function getLifeStage(value, total) {
+            const ratio = value / total;
+            if (ratio > 0.3) return "核心价值";
+            if (ratio > 0.2) return "重要目标";
+            if (ratio > 0.1) return "成長領域";
+            return "探索方向";
+        }
 
         // 添加图例
         const legend = svg.append("g")

@@ -304,7 +304,7 @@ def simulate(value_system_priority, action_plans):
         # 初始化累计字典（无论是否为空）
         if not cumulative_life_meaning_by_goal:
             cumulative_goal_contributions = {k: v if v != 0 else random.uniform(0.1, 1) 
-                                          for k, v in goal_contributions.items()}
+                                      for k, v in goal_contributions.items()}
         else:
             # 后续周期，添加上一周期的累计值并应用衰减因子
             cumulative_goal_contributions = {}
@@ -432,16 +432,12 @@ if __name__ == "__main__":
             {**{k: float(v) for k, v in item.items()}} for item in cumulative_life_meaning_by_goal
         ],
         "lifespan_stages": [
-            stage[2] for stage in [
-                (0, 5, "婴幼儿期"),
-                (6, 12, "童年期"),
-                (13, 19, "青少年期"),
-                (20, 35, "青年期"),
-                (36, 50, "中年期"),
-                (51, 65, "壮年期"),
-                (66, 80, "老年期")
-            ]
-        ]  # 添加人生阶段信息
+            {
+                "stage_name": stage[2],
+                "start_age": stage[0],
+                "end_age": stage[1]
+            } for stage in value_system_priority.lifespan_stages  # 使用模型中的生命周期阶段数据
+        ]  # 添加结构化的人生阶段信息
     }
 
     # 写入simulation_output.json文件
