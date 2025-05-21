@@ -190,11 +190,23 @@
                         lifespanStages = data.lifespan_stages;
                     } else if (data.lifespan_stages && typeof data.lifespan_stages === 'object') {
                         // 如果是对象而不是数组，尝试转换
-                        lifespanStages = Object.entries(data.lifespan_stages).map(([key, stage]) => ({
-                            stage_name: stage.stage_name || stage.name || key,
-                            start_age: stage.start_age || 0,
-                            end_age: stage.end_age || 0
-                        }));
+                        lifespanStages = Object.entries(data.lifespan_stages).map(([key, stage]) => {
+                            if (typeof stage === 'object' && !Array.isArray(stage)) {
+                                return {
+                                    stage_name: stage.stage_name || stage.name || stage.stage || key,
+                                    start_age: stage.start_age || stage.min_age || 0,
+                                    end_age: stage.end_age || stage.max_age || 0,
+                                    age_range: stage.age_range || `${stage.start_age || stage.min_age || 0}-${stage.end_age || stage.max_age || 0}岁`
+                                };
+                            } else {
+                                // 如果 stage 是字符串或其他类型，创建一个默认结构
+                                return {
+                                    stage_name: stage.toString(),
+                                    start_age: 0,
+                                    end_age: 0
+                                };
+                            }
+                        });
                     }
 
                     // 将数据附加到 window 对象，便于其他函数访问
@@ -205,6 +217,9 @@
                         cumulativeLifeMeaningByGoal,
                         lifespanStages
                     };
+
+                    // 打印调试信息
+                    console.log('lifeMeaningByGoal:', window.visualizationData.lifeMeaningByGoal);
 
                     // 初始化图表
                     initializeCharts();
@@ -765,240 +780,160 @@
         }
 
         // 添加推荐信息
-        function addRecommendationInfo() {
-            const recommendationContainer = document.getElementById('recommendation-info');
-            if (!recommendationContainer) {
-                console.error('找不到推荐信息容器');
-                return;
-            }
-            
-            // 清空现有内容
-            recommendationContainer.innerHTML = '';
-            
-            // 如果没有生命周期阶段数据，使用默认推荐
-            if (!window.visualizationData || !window.visualizationData.lifespanStages || window.visualizationData.lifespan_stages.length === 0) {
-                // 创建标题
-                const title = document.createElement('h3');
-                title.textContent = '推荐信息';
-                title.style.color = '#2c3e50';
-                title.style.marginBottom = '15px';
-                recommendationContainer.appendChild(title);
-                
-                // 创建默认权重列表
-                const defaultWeights = {
-                    "家庭": 0.4,
-                    "健康": 0.3,
-                    "学习": 0.2,
-                    "社交": 0.1
-                };
-                
-                const weightList = document.createElement('ul');
-                weightList.style.listStyleType = 'none';
-                weightList.style.paddingLeft = '0';
-                
-                // 计算总权重
-                const totalWeight = d3.sum(Object.values(defaultWeights));
-                
-                for (const [goal, weight] of Object.entries(defaultWeights)) {
-                    const listItem = document.createElement('li');
-                    listItem.style.margin = '8px 0';
-                    listItem.innerHTML = `<strong>${goal}</strong>: ${(weight * 100 / totalWeight).toFixed(1)}%`;
-                    weightList.appendChild(listItem);
-                }
-                
-                recommendationContainer.appendChild(weightList);
-                
-                // 创建行動建议
-                const actionSuggestions = document.createElement('div');
-                actionSuggestions.style.marginTop = '20px';
-                
-                const actionTitle = document.createElement('h4');
-                actionTitle.textContent = '具体行動建议';
-                actionTitle.style.color = '#34495e';
-                actionTitle.style.marginBottom = '10px';
-                actionSuggestions.appendChild(actionTitle);
-                
-                const actions = [
-                    "定期评估价值目标的优先级",
-                    "为每个价值目标设定具体行动计划",
-                    "每月回顾价值目标达成情况",
-                    "根据生命周期阶段调整目标权重"
-                ];
-                
-                const actionList = document.createElement('ul');
-                actionList.style.listStyleType = 'disc';
-                actionList.style.paddingLeft = '20px';
-                
-                for (const action of actions) {
-                    const listItem = document.createElement('li');
-                    listItem.textContent = action;
-                    actionList.appendChild(listItem);
-                }
-                
-                actionSuggestions.appendChild(actionList);
-                recommendationContainer.appendChild(actionSuggestions);
-                
-                return;
-            }
-            
-            // 获取当前年龄段（示例用法）
-            const currentStage = getCurrentLifeStage();
-            
-            // 创建标题
-            const title = document.createElement('h3');
-            title.textContent = '推荐信息';
-            title.style.color = '#2c3e50';
-            title.style.marginBottom = '15px';
-            recommendationContainer.appendChild(title);
-            
-            // 创建基于人生阶段的推荐
-            const stageBasedWeights = {
-                "婴幼儿期": { "家庭": 0.5, "健康": 0.3, "学习": 0.2 },
-                "童年期": { "家庭": 0.4, "健康": 0.3, "学习": 0.3 },
-                "青少年期": { "学习": 0.4, "社交": 0.3, "自我表达": 0.2, "家庭": 0.1 },
-                "青年期": { "成长": 0.3, "职业": 0.3, "社交": 0.2, "家庭": 0.2 },
-                "中年期": { "职业": 0.3, "家庭": 0.3, "社会责任": 0.2, "财务规划": 0.2 },
-                "壮年期": { "家庭": 0.3, "健康": 0.3, "社会责任": 0.2, "精神追求": 0.2 },
-                "老年期": { "健康": 0.4, "家庭": 0.3, "心理慰藉": 0.3 }
-            };
-            
-            // 根据当前人生阶段获取推荐权重
-            let recommendedWeights = {};
-            if (currentStage && stageBasedWeights[currentStage]) {
-                recommendedWeights = stageBasedWeights[currentStage];
-            } else {
-                // 默认权重分配
-                recommendedWeights = {
-                    "家庭": 0.4,
-                    "健康": 0.3,
-                    "学习": 0.2,
-                    "社交": 0.1
-                };
-            }
-            
-            // 将推荐权重存储到 visualizationData 以便其他函数访问
-            window.visualizationData.recommendedWeights = recommendedWeights;
-            
-            // 创建权重列表
-            const weightList = document.createElement('ul');
-            weightList.style.listStyleType = 'none';
-            weightList.style.paddingLeft = '0';
-            
-            // 计算总权重
-            const totalWeight = d3.sum(Object.values(recommendedWeights));
-            
-            for (const [goal, weight] of Object.entries(recommendedWeights)) {
-                const listItem = document.createElement('li');
-                listItem.style.margin = '8px 0';
-                listItem.innerHTML = `<strong>${goal}</strong>: ${(weight * 100 / totalWeight).toFixed(1)}%`;
-                weightList.appendChild(listItem);
-            }
-            
-            recommendationContainer.appendChild(weightList);
-            
-            // 创建行動建议
-            const actionSuggestions = document.createElement('div');
-            actionSuggestions.style.marginTop = '20px';
-            
-            const actionTitle = document.createElement('h4');
-            actionTitle.textContent = '具体行動建议';
-            actionTitle.style.color = '#34495e';
-            actionTitle.style.marginBottom = '10px';
-            actionSuggestions.appendChild(actionTitle);
-            
-            // 根据人生阶段生成具体行動建议
-            const actions = getActionSuggestions(currentStage);
-            
-            const actionList = document.createElement('ul');
-            actionList.style.listStyleType = 'disc';
-            actionList.style.paddingLeft = '20px';
-            
-            for (const action of actions) {
-                const listItem = document.createElement('li');
-                listItem.textContent = action;
-                actionList.appendChild(listItem);
-            }
-            
-            actionSuggestions.appendChild(actionList);
-            recommendationContainer.appendChild(actionSuggestions);
-        }
+function addRecommendationInfo() {
+    const recommendationContainer = document.getElementById('recommendation-info');
+    if (!recommendationContainer) {
+        console.error('找不到推荐信息容器');
+        return;
+    }
 
-        // 获取当前人生阶段
-        function getCurrentLifeStage() {
-            if (!window.visualizationData || !window.visualizationData.lifespanStages || window.visualizationData.lifespanStages.length === 0) {
-                console.log('没有生命周期阶段数据可供展示');
-                return null;
-            }
-            
-            // 示例：使用最新周期的数据
-            const currentStage = window.visualizationData.lifespanStages.find(stage => stage.is_current);
-            
-            return currentStage ? currentStage.stage_name : null;
-        }
+    // 清空现有内容
+    recommendationContainer.innerHTML = '';
 
-        // 根据人生阶段生成具体行動建议
-        function getActionSuggestions(stage) {
-            if (!stage) {
-                return [
-                    "定期评估价值目标的优先级",
-                    "为每个价值目标设定具体行动计划",
-                    "每月回顾价值目标达成情况",
-                    "根据生命周期阶段调整目标权重"
-                ];
-            }
-            
-            switch(stage) {
-                case "婴幼儿期":
-                    return [
-                        "多陪伴家人，建立安全感",
-                        "培养良好的作息和饮食习惯",
-                        "鼓励探索感兴趣的事物，激发好奇心"
-                    ];
-                case "童年期":
-                    return [
-                        "设定阶段性学习目标并坚持执行",
-                        "每天保持适量运动，保持身体健康",
-                        "积极参与学校活动，拓展人际关系"
-                    ];
-                case "青少年期":
-                    return [
-                        "制定清晰的职业发展规划",
-                        "主动学习新技能，提升职场竞争力",
-                        "建立稳定的人际关系网络"
-                    ];
-                case "青年期":
-                    return [
-                        "平衡工作与生活的平衡",
-                        "关注职业发展的长期规划",
-                        "建立稳定的人际关系网络"
-                    ];
-                case "中年期":
-                    return [
-                        "重视家庭关系的维护与沟通",
-                        "定期体检，关注身体健康",
-                        "参与公益或社区事务，回馈社会"
-                    ];
-                case "壮年期":
-                    return [
-                        "享受家庭生活，传承家族文化",
-                        "注重健康管理，预防慢性疾病",
-                        "发展兴趣爱好，丰富退休生活"
-                    ];
-                case "老年期":
-                    return [
-                        "珍惜与家人的相处时光",
-                        "保持适度的身体活动",
-                        "记录人生感悟，留下精神财富"
-                    ];
-                default:
-                    return [
-                        "定期评估价值目标的优先级",
-                        "为每个价值目标设定具体行动计划",
-                        "每月回顾价值目标达成情况",
-                        "根据生命周期阶段调整目标权重"
-                    ];
+    // 创建标题
+    const title = document.createElement('h3');
+    title.textContent = '推荐信息';
+    title.style.color = '#2c3e50';
+    title.style.marginBottom = '15px';
+    recommendationContainer.appendChild(title);
+
+    // 检查是否有可视化数据
+    if (!window.visualizationData || !window.visualizationData.lifeMeaningByGoal || window.visualizationData.lifeMeaningByGoal.length === 0) {
+        const noData = document.createElement('p');
+        noData.textContent = '暂无推荐信息可供展示';
+        noData.style.color = '#666';
+        noData.style.fontStyle = 'italic';
+        recommendationContainer.appendChild(noData);
+        return;
+    }
+
+    // 获取最新的目标贡献数据
+    const latestGoalData = window.visualizationData.lifeMeaningByGoal[window.visualizationData.lifeMeaningByGoal.length - 1];
+
+    if (typeof latestGoalData !== 'object' || Array.isArray(latestGoalData)) {
+        const invalidData = document.createElement('p');
+        invalidData.textContent = '推荐信息数据格式错误';
+        invalidData.style.color = '#666';
+        invalidData.style.fontStyle = 'italic';
+        recommendationContainer.appendChild(invalidData);
+        return;
+    }
+
+    // 获取生命周期阶段数据
+    let currentStage = null;
+    const now = new Date();
+    const currentYear = now.getFullYear();
+
+    if (window.visualizationData.lifespanStages && Array.isArray(window.visualizationData.lifespanStages)) {
+        for (const stage of window.visualizationData.lifespanStages) {
+            if (typeof stage === 'object') {
+                let startAge = stage.start_age || stage.min_age || 0;
+                let endAge = stage.end_age || stage.max_age || 0;
+
+                // 假设当前年龄是 30 岁（可以根据实际需求动态获取）
+                const currentAge = 30;
+
+                if (currentAge >= startAge && currentAge <= endAge) {
+                    currentStage = stage;
+                    break;
+                }
             }
         }
+    }
+
+    // 生成推荐信息
+    const recommendations = [];
+
+    // 示例：推荐权重最高的三个价值目标
+    const sortedGoals = Object.entries(latestGoalData)
+        .filter(([goal, value]) => value > 0.001)  // 过滤掉权重极低的目标
+        .sort((a, b) => b[1] - a[1]);  // 按照权重降序排序
+
+    // 添加排名前三的推荐
+    for (let i = 0; i < Math.min(3, sortedGoals.length); i++) {
+        const [goal, value] = sortedGoals[i];
+        recommendations.push({
+            title: `${goal}（权重: ${(value * 100).toFixed(1)}%）`,
+            description: `建议重点投入此价值目標，因其在当前周期内具有较高的人生意义贡献。`
+        });
+    }
+
+    // 如果有生命周期阶段数据，则添加基于阶段的推荐
+    if (currentStage && typeof currentStage === 'object') {
+        const stageName = currentStage.stage_name || '未知阶段';
+        const stageDescription = `您目前处于${stageName}阶段，这是人生的重要时期，建议关注以下几个方面：`;
+
+        recommendations.push({
+            title: `阶段推荐：${stageName}`,
+            description: stageDescription
+        });
+
+        // 可以在这里添加更具体的阶段推荐内容
+        if (stageName === '青年期') {
+            recommendations.push({
+                title: '职业发展',
+                description: '建议加强职业技能的学习与积累，同时拓展人脉资源，为未来的职业道路打下坚实基础。'
+            });
+            recommendations.push({
+                title: '人际关系',
+                description: '建立和维护良好的人际关系网络，有助于未来的个人成长和事业发展。'
+            });
+        } else if (stageName === '中年期') {
+            recommendations.push({
+                title: '财务规划',
+                description: '建议合理进行财务规划，确保家庭经济稳定，并为退休生活做好准备。'
+            });
+            recommendations.push({
+                title: '健康管理',
+                description: '注意身体健康管理，定期体检并保持良好生活习惯。'
+            });
+        } else if (stageName === '老年期') {
+            recommendations.push({
+                title: '生活质量',
+                description: '注重生活质量的提升，享受退休生活的同时，保持社交活动。'
+            });
+            recommendations.push({
+                title: '经验传承',
+                description: '将自己的经验与知识传递给下一代，发挥余热。'
+            });
+        }
+    }
+
+    // 如果没有任何推荐，则显示提示信息
+    if (recommendations.length === 0) {
+        const noRecommendation = document.createElement('p');
+        noRecommendation.textContent = '暂无符合条件的推荐信息';
+        noRecommendation.style.color = '#666';
+        noRecommendation.style.fontStyle = 'italic';
+        recommendationContainer.appendChild(noRecommendation);
+        return;
+    }
+
+    // 创建推荐列表
+    const recommendationList = document.createElement('ul');
+    recommendationList.style.listStyleType = 'none';
+    recommendationList.style.paddingLeft = '0';
+
+    for (const rec of recommendations) {
+        const listItem = document.createElement('li');
+        listItem.style.margin = '8px 0';
+
+        const recTitle = document.createElement('strong');
+        recTitle.textContent = rec.title;
+        recTitle.style.display = 'block';
+        recTitle.style.marginBottom = '4px';
+
+        const recDescription = document.createElement('span');
+        recDescription.textContent = rec.description;
+
+        listItem.appendChild(recTitle);
+        listItem.appendChild(recDescription);
+        recommendationList.appendChild(listItem);
+    }
+
+    recommendationContainer.appendChild(recommendationList);
+}
+
     </script>
 </body>
 </html>
