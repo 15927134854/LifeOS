@@ -151,7 +151,7 @@
                     // 解析数据
                     const lifeMeaningData = data.life_meaning || [];
                     const cumulativeLifeMeaningData = data.cumulative_life_meaning || [];
-                    
+
                     // 处理 life_meaning_by_goal 数据
                     const lifeMeaningByGoal = [];
                     if (data.life_meaning_by_goal && typeof data.life_meaning_by_goal === 'object' && !Array.isArray(data.life_meaning_by_goal)) {
@@ -165,10 +165,10 @@
                             }
                         }
                     }
-                    
-                    const cumulativeLifeMeaningByGoal = Array.isArray(data.cumulative_life_meaning_by_goal) ? 
+
+                    const cumulativeLifeMeaningByGoal = Array.isArray(data.cumulative_life_meaning_by_goal) ?
                         data.cumulative_life_meaning_by_goal : [];
-                    
+
                     // 处理 lifespanStages 数据
                     let lifespanStages = [];
                     if (data.lifespan_stages && Array.isArray(data.lifespan_stages)) {
@@ -223,15 +223,15 @@
                 alert('可视化数据缺失，请检查 simulation_output.json 是否正常生成');
                 return;
             }
-            
+
             // 获取饼图数据
             const pieData = generatePieData();
             const cumulativePieData = generateCumulativePieData();
-            
+
             // 绘制折线图
             drawLineChart('#life-meaning-trend', window.visualizationData.lifeMeaningData, '人生意義趋势');
             drawLineChart('#cumulative-life-meaning-trend', window.visualizationData.cumulativeLifeMeaningData, '累计人生意義趋势');
-            
+
             // 绘制柱状图
             if (window.visualizationData.lifeMeaningByGoal && Array.isArray(window.visualizationData.lifeMeaningByGoal) && window.visualizationData.lifeMeaningByGoal.length > 0) {
                 drawBarChart('#value-goal-contribution', window.visualizationData.lifeMeaningByGoal, '每个价值目標的人生意義贡献');
@@ -243,7 +243,7 @@
                 document.querySelector('#value-goal-contribution + p').textContent = '暂无价值目标数据';
                 document.querySelector('#cumulative-value-goal-contribution + p').textContent = '暂无累计价值目标数据';
             }
-            
+
             // 绘制饼图
             if (pieData && pieData.length > 0) {
                 drawPieChart('#value-goal-pie-chart', pieData, '每个价值目標的人生意義贡献占比');
@@ -252,7 +252,7 @@
                 document.getElementById('value-goal-pie-chart').style.display = 'none';
                 document.querySelector('#value-goal-pie-chart + p').textContent = '暂无价值目标数据';
             }
-            
+
             if (cumulativePieData && cumulativePieData.length > 0) {
                 drawPieChart('#cumulative-value-goal-pie-chart', cumulativePieData, '每个价值目標の累计人生意義贡献占比');
             } else {
@@ -260,10 +260,10 @@
                 document.getElementById('cumulative-value-goal-pie-chart').style.display = 'none';
                 document.querySelector('#cumulative-value-goal-pie-chart + p').textContent = '暂无累计价值目標データ';
             }
-            
+
             // 显示生命周期阶段信息
             displayLifespanStages();
-            
+
             // 添加推荐信息
             addRecommendationInfo();
         }
@@ -372,14 +372,14 @@
                 const svg = d3.select(selector)
                     .attr("width", width + margin.left + margin.right)
                     .attr("height", height + margin.top + margin.bottom);
-                
+
                 svg.append("text")
                     .attr("x", width / 2)
                     .attr("y", height / 2)
                     .attr("text-anchor", "middle")
                     .style("font-size", "18px")
                     .text("暂无数据可供展示");
-                
+
                 return;
             }
 
@@ -495,14 +495,14 @@
                 const svg = d3.select(selector)
                     .attr("width", width)
                     .attr("height", height);
-                
+
                 svg.append("text")
                     .attr("x", width / 2)
                     .attr("y", height / 2)
                     .attr("text-anchor", "middle")
                     .style("font-size", "18px")
                     .text("暂无数据可供展示");
-                
+
                 return;
             }
 
@@ -549,7 +549,7 @@
                         .transition()
                         .duration(200)
                         .attr("transform", `scale(1.1) translate(-${d.x},${-d.y})`);
-                    
+
                     // 显示提示框
                     tooltip.transition()
                         .duration(200)
@@ -565,7 +565,7 @@
                         .transition()
                         .duration(500)
                         .attr("transform", "scale(1)");
-                    
+
                     // 隐藏提示框
                     tooltip.transition()
                         .duration(500)
@@ -646,23 +646,23 @@
                 console.log('没有价值目标数据可供展示');
                 return [];
             }
-            
+
             // 使用最新周期的数据
-            const latestGoalData = Array.isArray(window.visualizationData.lifeMeaningByGoal) ? 
-                window.visualizationData.lifeMeaningByGoal[window.visualizationData.lifeMeaningByGoal.length - 1] : 
+            const latestGoalData = Array.isArray(window.visualizationData.lifeMeaningByGoal) ?
+                window.visualizationData.lifeMeaningByGoal[window.visualizationData.lifeMeaningByGoal.length - 1] :
                 window.visualizationData.lifeMeaningByGoal;
-            
+
             // 如果是对象而不是数组，直接使用
             if (typeof latestGoalData === 'object' && !Array.isArray(latestGoalData)) {
                 // 过滤掉 null 或 NaN 的値，并转换为 { name, value } 格式
                 const pieData = Object.entries(latestGoalData)
                     .filter(([name, value]) => typeof value === 'number' && !isNaN(value) && value > 0)
                     .map(([name, value]) => ({ name, value }));
-                
+
                 console.log('生成的饼图数据:', pieData);
                 return pieData;
             }
-            
+
             // 将数据转换为饼图需要的格式 {name: '', value: ''}
             const pieData = [];
             for (const [goal, value] of Object.entries(latestGoalData)) {
@@ -673,7 +673,7 @@
                     });
                 }
             }
-            
+
             console.log('生成的饼图数据:', pieData);
             return pieData;
         }
@@ -684,17 +684,17 @@
                 console.log('没有累计价值目标数据可供展示');
                 return [];
             }
-            
+
             // 使用最新周期的累计数据
-            const latestCumulativeData = Array.isArray(window.visualizationData.cumulativeLifeMeaningByGoal) ? 
-                window.visualizationData.cumulativeLifeMeaningByGoal[window.visualizationData.cumulativeLifeMeaningByGoal.length - 1] : 
+            const latestCumulativeData = Array.isArray(window.visualizationData.cumulativeLifeMeaningByGoal) ?
+                window.visualizationData.cumulativeLifeMeaningByGoal[window.visualizationData.cumulativeLifeMeaningByGoal.length - 1] :
                 window.visualizationData.cumulativeLifeMeaningByGoal;
-            
+
             // 如果是对象而不是数组，直接使用
             if (typeof latestCumulativeData === 'object' && !Array.isArray(latestCumulativeData)) {
                 return Object.entries(latestCumulativeData).map(([name, value]) => ({ name, value }));
             }
-            
+
             // 将数据转换为饼图需要的格式 {name: '', value: ''}
             const cumulativePieData = [];
             for (const [goal, value] of Object.entries(latestCumulativeData)) {
@@ -703,7 +703,7 @@
                     value: value
                 });
             }
-            
+
             return cumulativePieData;
         }
 
@@ -714,10 +714,10 @@
                 console.error('找不到生命周期阶段容器');
                 return;
             }
-            
+
             // 清空现有内容
             stageContainer.innerHTML = '';
-            
+
             // 如果没有生命周期阶段数据，显示默认提示
             if (!window.visualizationData || !window.visualizationData.lifespanStages || !Array.isArray(window.visualizationData.lifespanStages) || window.visualizationData.lifespanStages.length === 0) {
                 const defaultStage = document.createElement('p');
@@ -727,29 +727,29 @@
                 stageContainer.appendChild(defaultStage);
                 return;
             }
-            
+
             // 创建标题
             const title = document.createElement('h3');
             title.textContent = '生命周期阶段情報';
             title.style.color = '#2c3e50';
             title.style.marginBottom = '15px';
             stageContainer.appendChild(title);
-            
+
             // 创建阶段列表
             const stageList = document.createElement('ul');
             stageList.style.listStyleType = 'none';
             stageList.style.paddingLeft = '0';
-            
+
             for (const stage of window.visualizationData.lifespanStages) {
                 // 确保 stage_name 存在
                 let stageName = '未知阶段';
                 let startAge = 0;
                 let endAge = 0;
-                
+
                 // 尝试从多种可能的字段获取阶段名称
                 if (typeof stage === 'object') {
                     stageName = stage.stage_name || stage.name || stage.stage || '未知阶段';
-                    
+
                     // 尝试解析起始和结束年龄
                     if (stage.age_range) {
                         const ageMatch = stage.age_range.match(/(\d+)-(\d+)/);
@@ -764,13 +764,13 @@
                 } else if (typeof stage === 'string') {
                     stageName = stage;
                 }
-                
+
                 const listItem = document.createElement('li');
                 listItem.style.margin = '8px 0';
                 listItem.innerHTML = `<strong>${stageName}</strong>: ${startAge} - ${endAge} 岁`;
                 stageList.appendChild(listItem);
             }
-            
+
             stageContainer.appendChild(stageList);
         }
 
