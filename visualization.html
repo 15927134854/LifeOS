@@ -111,20 +111,6 @@
             <p id="cumulative-value-goal-contribution-description">正在展示各价值目标在整个生命周期中的累计意义贡献</p>
         </section>
 
-        <section class="chart-container">
-            <h2 id="value-goal-pie-chart-title">价值目标贡献占比</h2>
-            <svg id="value-goal-pie-chart"></svg>
-            <div id="value-goal-pie-tooltip" class="tooltip" style="display: none;"></div>
-            <p id="value-goal-pie-description">正在展示各价值目标在当前周期中的意义贡献占比</p>
-        </section>
-
-        <section class="chart-container">
-            <h2 id="cumulative-value-goal-pie-chart-title">累计价值目標贡献占比</h2>
-            <svg id="cumulative-value-goal-pie-chart"></svg>
-            <div id="cumulative-value-goal-pie-tooltip" class="tooltip" style="display: none;"></div>
-            <p id="cumulative-value-goal-pie-description">正在展示各价值目標在整个生命周期中の累计意義貢献占比</p>
-        </section>
-
         <section>
             <h2>生命周期阶段</h2>
             <div id="lifespan-stages">
@@ -668,18 +654,27 @@
             
             // 如果是对象而不是数组，直接使用
             if (typeof latestGoalData === 'object' && !Array.isArray(latestGoalData)) {
-                return Object.entries(latestGoalData).map(([name, value]) => ({ name, value }));
+                // 过滤掉 null 或 NaN 的値，并转换为 { name, value } 格式
+                const pieData = Object.entries(latestGoalData)
+                    .filter(([name, value]) => typeof value === 'number' && !isNaN(value) && value > 0)
+                    .map(([name, value]) => ({ name, value }));
+                
+                console.log('生成的饼图数据:', pieData);
+                return pieData;
             }
             
             // 将数据转换为饼图需要的格式 {name: '', value: ''}
             const pieData = [];
             for (const [goal, value] of Object.entries(latestGoalData)) {
-                pieData.push({
-                    name: goal,
-                    value: value
-                });
+                if (typeof value === 'number' && !isNaN(value) && value > 0) {
+                    pieData.push({
+                        name: goal,
+                        value: value
+                    });
+                }
             }
             
+            console.log('生成的饼图数据:', pieData);
             return pieData;
         }
 
