@@ -148,27 +148,78 @@ $$
   - 不同方式回忆不同 年龄 $age$ 段的经历和感受，增加人生的意义感，体验幸福
 
 
-lifeos_script.py 是一个用于构建和模拟价值目标体系的脚本，主要功能包括：
+### 项目结构
+```
+README.md
+manage.py
+requirements.txt
+visualization.html
+.idea/
+ .gitignore
+ LifeOS.iml
+ inspectionProfiles/
+ misc.xml
+ modules.xml
+ vcs.xml
+ workspace.xml
+venv/
+ .gitignore
+ CACHEDIR.TAG
+ Lib/
+ Scripts/
+ pyvenv.cfg
+LifeOS/
+ __init__.py
+ __pycache__/
+ asgi.py
+ common/
+ conf/
+ settings.py
+ urls.py
+ wsgi.py
+goal/
+ __init__.py
+ __pycache__/
+ admin.py
+ apps.py
+ lifeos_script.py
+ migrations/
+ models.py
+ simulation_output.json
+ tests.py
+ urls.py
+ values.json
+ your_gui_code.py
+```
 
-1. **数据初始化与清理**：
-   - 从 values.json 文件加载配置数据。
-   - 清理数据库中已有的相关数据，确保每次运行时环境干净。
+### 主要业务对象
+#### 价值目标（ValueGoal）相关
+- **价值目标分类（ValueGoalCategory）**：用于组织价值目标，分类间使用 *[Taxonomy 分类自...子]* 关系组成树状层级。
+- **价值目标（ValueGoal）**：构成个人价值观的基本要素，相对具体以便落实到人生行动，与价值目标分类间使用 *[Categorization 归属于...]* 关系。
+- **价值目标体系（ValueSystemPriority）**：由分类和具体目标组成，结构符合 MECE 原则，每个目标有重要度权重和衰减因子，目标体系会随个人认知和环境变化，但结构稳定以便比较人生意义。
 
-2. **构建价值目标体系**：
-   - 创建价值目标分类（ValueGoalCategory）树形结构。
-   - 根据 JSON 数据创建价值目标（ValueGoal）及其权重（ValueGoalWeight）。
+#### 行动（Action）相关
+- **行动分类（MetaActionCategory）**：组织行动的分类，作用与价值目标分类类似。
+- **元行动（MetaAction）**：日常行动的模板，与价值目标建立因果关系，便于管理和选择有意义的行动，同时用于计算生命的意义。主要属性包括行动工作价值量（pv）、行动间的协同/拮抗效应关系（interaction）、有效性（effectiveness）、优先级（priority）、推荐度（recommendation）、因果关系属性（cau）和归属于关系属性（cat）。
+- **关系类 MetaActionCausationValueGoal**：元行动与价值目标的关系对象，属性包括因果导向关系对儿（causationPair）、因果导向关系的影响度权重（weight）、置信度（confidence）和因果导向关系时间延迟（time_lag）。
+- **关系类 MetaActionInteractionMetaAction**：元行动间的协同/拮抗效应关系对象，属性包括协同/拮抗效应对儿（interactionPair）和行动间协同/拮抗效应关系权重（weight）。
+- **行动（Action）**：具体的日常行动，构成周期行动计划的基本要素。主要属性包括派生自的元行动（metaAction）、行动描述（description）、EVM 挣值管理的数据（pv、ac、ev）、目标达成率（achievement_rate）、行动记录（note）、行动时间属性和行动状态（status）。
+- **行动计划（ActionPlan）**：由行动组成的周期性行动计划，主要属性包括实际行动集合（actions）和行动计划记录（note）。
 
-3. **构建元行动**：
-   - 基于价值目标生成元行动（MetaAction），并建立因果关系（MetaActionCausationValueGoal）。
+#### 人生意义（Lifemeaning）相关
+- **人生意义（Lifemeaning）**：由行动计划执行后经过算法计算得出的量化的人生意义数值，主要属性包括创建时间（created_at）、关联的行动计划对象（action_plan）、相关的价值目标体系对象（value_system_priority）和每轮行动计划执行后的人生意义数值（life_meaning）。
+- **累计人生意义（CumulativeLifemeaning）**：由人生意义累加同时考虑价值目标的衰减因子，是当前时间的人生意义累计值，幸福喜悦和累计的人生意义等价。
 
-4. **构建行动计划**：
-   - 随机生成多个周期的行动计划（ActionPlan），每个计划包含若干具体行动（Action）。
+### 代码文件
+- **README.md**：项目的说明文档，介绍了项目的基本信息、主要业务对象和人生意义的计算算法。
+- **manage.py**：Django 项目的管理脚本，用于执行各种管理命令。
+- **requirements.txt**：项目依赖的 Python 包列表。
+- **visualization.html**：可能用于可视化项目数据的 HTML 文件。
+- **LifeOS/**：项目的主要应用目录，包含项目的配置文件、URL 路由和 ASGI、WSGI 配置等。
+- **goal/**：与目标管理相关的应用目录，包含模型定义、迁移文件、测试文件和 URL 路由等。
 
-5. **运行仿真**：
-   - 模拟行动计划的执行过程，计算每个行动对价值目标的影响。
-   - 生成人生意义（Lifemeaning）和累计人生意义（CumulativeLifemeaning）数据。
+### 相关依赖库代码
+仓库的虚拟环境（`venv`）中包含了 Django 相关的依赖库代码，涉及消息存储、密码哈希、数据库操作、地理信息系统（GIS）支持等功能。这些代码为项目提供了基础的功能支持。
 
-6. **数据输出**：
-   - 将仿真结果导出到 simulation_output.json 文件，便于后续可视化或分析。
-
-该脚本主要用于构建一个复杂的决策支持系统，通过量化不同行动对人生意义的贡献，帮助用户理解和优化其行为模式。
+### 总结
+`LifeOS` 项目是一个具有创新性的人生管理软件系统，通过定义各种业务对象和关系，实现了对人生目标、行动和意义的量化管理。项目使用 Django 作为后端框架，结合相关依赖库提供了丰富的功能。
