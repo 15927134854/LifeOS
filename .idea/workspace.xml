@@ -5,7 +5,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0ca0a285-a183-49cf-adf5-7354d2f6ca6c" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/app/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/app/data_import.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/app/initial_data/values.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/app/initial_data/values_template.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/app/llm.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/app/models.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/app/routes.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/app/simulation.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/app/visualization.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/db/test.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/db/test.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/static/css/style.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/static/js/script.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/templates/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/LifeOS/templates/visualizations.html" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
