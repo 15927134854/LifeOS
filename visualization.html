@@ -58,6 +58,26 @@
             dominant-baseline: middle;
             alignment-baseline: middle;
         }
+        .pie-legend {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            margin-left: 20px;
+        }
+        .pie-legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 24px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .pie-legend-color {
+            width: 18px;
+            height: 18px;
+            margin-right: 6px;
+            border-radius: 3px;
+            display: inline-block;
+        }
         footer {
             text-align: center;
             padding: 20px;
@@ -66,6 +86,7 @@
         }
         @media (max-width: 768px) {
             svg { height: 300px; }
+            .pie-legend { margin-left: 0; }
         }
     </style>
 </head>
@@ -98,11 +119,13 @@
         <section class="chart-container" aria-label="价值目标贡献占比">
             <h2>价值目标贡献占比</h2>
             <svg id="value-goal-pie-chart"></svg>
+            <div id="value-goal-pie-legend" class="pie-legend"></div>
             <p>各价值目标在当前周期的意义贡献占比</p>
         </section>
         <section class="chart-container" aria-label="累计价值目标贡献占比">
             <h2>累计价值目标贡献占比</h2>
             <svg id="cumulative-value-goal-pie-chart"></svg>
+            <div id="cumulative-value-goal-pie-legend" class="pie-legend"></div>
             <p>各价值目标在整个生命周期的累计意义贡献占比</p>
         </section>
         <section>
@@ -208,21 +231,23 @@
                 document.querySelector('#cumulative-value-goal-contribution + p').textContent = '暂无累计价值目标数据';
             }
             if (pieData && pieData.length > 0) {
-                drawPieChart('#value-goal-pie-chart', pieData, '每个价值目标的人生意义贡献占比');
+                drawPieChart('#value-goal-pie-chart', pieData, '每个价值目标的人生意义贡献占比', '#value-goal-pie-legend');
             } else {
                 document.getElementById('value-goal-pie-chart').style.display = 'none';
+                document.getElementById('value-goal-pie-legend').innerHTML = '';
             }
             if (cumulativePieData && cumulativePieData.length > 0) {
-                drawPieChart('#cumulative-value-goal-pie-chart', cumulativePieData, '每个价值目标的累计人生意义贡献占比');
+                drawPieChart('#cumulative-value-goal-pie-chart', cumulativePieData, '每个价值目标的累计人生意义贡献占比', '#cumulative-value-goal-pie-legend');
             } else {
                 document.getElementById('cumulative-value-goal-pie-chart').style.display = 'none';
+                document.getElementById('cumulative-value-goal-pie-legend').innerHTML = '';
             }
             displayLifespanStages();
             addRecommendationInfo();
         }
 
         function drawLineChart(selector, data, title) {
-            const margin = {top: 40, right: 30, bottom: 50, left: 60}; // top加大
+            const margin = {top: 40, right: 30, bottom: 50, left: 60};
             const width = 900 - margin.left - margin.right;
             const height = 500 - margin.top - margin.bottom;
             d3.select(selector).selectAll("*").remove();
@@ -281,14 +306,14 @@
             svg.append("text")
                 .attr("class", "chart-title")
                 .attr("x", (width / 2))
-                .attr("y", -20) // 让标题下移一些
+                .attr("y", -20)
                 .attr("text-anchor", "middle")
                 .style("font-size", "18px")
                 .text(title);
         }
 
         function drawBarChart(selector, data, title) {
-            const margin = {top: 40, right: 20, bottom: 80, left: 60}; // top加大
+            const margin = {top: 40, right: 20, bottom: 80, left: 60};
             const width = 900 - margin.left - margin.right;
             const height = 500 - margin.top - margin.bottom;
             d3.select(selector).selectAll("*").remove();
@@ -304,7 +329,6 @@
                     .text("暂无数据可供展示");
                 return;
             }
-            // 只取最新周期
             const latest = Array.isArray(data) ? data[data.length - 1] : data;
             const entries = Object.entries(latest).filter(([k, v]) => typeof v === "number" && !isNaN(v));
             const x = d3.scaleBand()
@@ -361,13 +385,14 @@
             svg.append("text")
                 .attr("class", "chart-title")
                 .attr("x", (width / 2))
-                .attr("y", -20) // 让标题下移一些
+                .attr("y", -20)
                 .attr("text-anchor", "middle")
                 .style("font-size", "18px")
                 .text(title);
         }
 
-        function drawPieChart(selector, data, title) {
+        // 优化后的饼状图，避免名称重叠，图例完整展示
+        function drawPieChart(selector, data, title, legendSelector) {
             const width = 900;
             const height = 500;
             const radius = Math.min(width, height) / 2 - 40;
@@ -382,13 +407,14 @@
                     .attr("text-anchor", "middle")
                     .style("font-size", "18px")
                     .text("暂无数据可供展示");
+                if (legendSelector) document.querySelector(legendSelector).innerHTML = '';
                 return;
             }
             const color = goalColors.domain(data.map(d => d.name));
             const pie = d3.pie().value(d => d.value).sort(null);
-            const total = d3.sum(data, d => d.value);
             const arc = d3.arc().innerRadius(radius * 0.4).outerRadius(radius);
-            const labelArc = d3.arc().innerRadius(radius * 0.55).outerRadius(radius * 0.55);
+            // 标签远离中心
+            const labelArc = d3.arc().innerRadius(radius * 0.7).outerRadius(radius * 0.7);
             const svg = d3.select(selector)
                 .attr("width", width)
                 .attr("height", height)
@@ -422,38 +448,52 @@
             arcs.append("path")
                 .attr("d", arc)
                 .attr("fill", d => goalColors(d.data.name));
+
+            // 只在占比大于6%的扇区上显示标签，其余只显示百分比
             arcs.append("text")
+                .filter(d => ((d.endAngle - d.startAngle) * 100 / (2 * Math.PI)) > 6)
                 .attr("transform", d => `translate(${labelArc.centroid(d)})`)
                 .attr("dy", ".35em")
                 .style("text-anchor", "middle")
                 .style("font-size", "13px")
                 .text(d => `${d.data.name}: ${((d.endAngle - d.startAngle) * 100 / (2 * Math.PI)).toFixed(1)}%`);
-            // 图例
-            const legend = svg.append("g")
-                .attr("transform", `translate(${radius + 60},-${radius})`)
-                .selectAll(".legend")
-                .data(pie(data))
-                .enter().append("g")
-                .attr("class", "legend")
-                .attr("transform", (d, i) => `translate(0,${i * 25})`);
-            legend.append("rect")
-                .attr("x", 0)
-                .attr("y", 0)
-                .attr("width", 18)
-                .attr("height", 18)
-                .style("fill", d => goalColors(d.data.name));
-            legend.append("text")
-                .attr("x", 24)
-                .attr("y", 9)
+
+            // 对于小于等于6%的块，仅显示百分比
+            arcs.append("text")
+                .filter(d => ((d.endAngle - d.startAngle) * 100 / (2 * Math.PI)) <= 6)
+                .attr("transform", d => `translate(${labelArc.centroid(d)})`)
                 .attr("dy", ".35em")
-                .text(d => `${d.data.name}`);
+                .style("text-anchor", "middle")
+                .style("font-size", "11px")
+                .text(d => `${((d.endAngle - d.startAngle) * 100 / (2 * Math.PI)).toFixed(1)}%`);
+
             svg.append("text")
                 .attr("class", "chart-title")
-                .attr("y", -radius - 20) // 让标题下移一些
+                .attr("y", -radius - 20)
                 .attr("x", 0)
                 .attr("text-anchor", "middle")
                 .style("font-size", "18px")
                 .text(title);
+
+            // 图例用HTML渲染，保证完整显示
+            if (legendSelector) {
+                const legendDiv = document.querySelector(legendSelector);
+                if (legendDiv) {
+                    legendDiv.innerHTML = '';
+                    data.forEach(d => {
+                        const item = document.createElement('div');
+                        item.className = 'pie-legend-item';
+                        const colorBox = document.createElement('span');
+                        colorBox.className = 'pie-legend-color';
+                        colorBox.style.background = goalColors(d.name);
+                        item.appendChild(colorBox);
+                        const label = document.createElement('span');
+                        label.textContent = d.name;
+                        item.appendChild(label);
+                        legendDiv.appendChild(item);
+                    });
+                }
+            }
         }
 
         function generatePieData() {
