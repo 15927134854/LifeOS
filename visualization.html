@@ -53,6 +53,11 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             display: none;
         }
+        /* 修复SVG标题显示不全 */
+        .chart-container svg text.chart-title {
+            dominant-baseline: middle;
+            alignment-baseline: middle;
+        }
         footer {
             text-align: center;
             padding: 20px;
@@ -217,7 +222,7 @@
         }
 
         function drawLineChart(selector, data, title) {
-            const margin = {top: 20, right: 30, bottom: 50, left: 60};
+            const margin = {top: 40, right: 30, bottom: 50, left: 60}; // top加大
             const width = 900 - margin.left - margin.right;
             const height = 500 - margin.top - margin.bottom;
             d3.select(selector).selectAll("*").remove();
@@ -274,15 +279,16 @@
                     globalTooltip.style("display", "none");
                 });
             svg.append("text")
+                .attr("class", "chart-title")
                 .attr("x", (width / 2))
-                .attr("y", 0 - margin.top / 2)
+                .attr("y", -20) // 让标题下移一些
                 .attr("text-anchor", "middle")
                 .style("font-size", "18px")
                 .text(title);
         }
 
         function drawBarChart(selector, data, title) {
-            const margin = {top: 20, right: 20, bottom: 80, left: 60};
+            const margin = {top: 40, right: 20, bottom: 80, left: 60}; // top加大
             const width = 900 - margin.left - margin.right;
             const height = 500 - margin.top - margin.bottom;
             d3.select(selector).selectAll("*").remove();
@@ -353,8 +359,9 @@
                     globalTooltip.style("display", "none");
                 });
             svg.append("text")
+                .attr("class", "chart-title")
                 .attr("x", (width / 2))
-                .attr("y", 0 - margin.top / 2)
+                .attr("y", -20) // 让标题下移一些
                 .attr("text-anchor", "middle")
                 .style("font-size", "18px")
                 .text(title);
@@ -441,7 +448,9 @@
                 .attr("dy", ".35em")
                 .text(d => `${d.data.name}`);
             svg.append("text")
-                .attr("y", -radius - 10)
+                .attr("class", "chart-title")
+                .attr("y", -radius - 20) // 让标题下移一些
+                .attr("x", 0)
                 .attr("text-anchor", "middle")
                 .style("font-size", "18px")
                 .text(title);
