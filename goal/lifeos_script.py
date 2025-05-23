@@ -344,115 +344,6 @@ def simulate(value_system_priority, action_plans):
 
 def recommend_actions_by_age(age, value_goals):
     """
-    根据当前年龄和价值目标生成推荐行动建议
-    
-    参数:
-        age (int): 当前年龄
-        value_goals (list): 价值目标列表
-    
-    返回:
-        dict: 推荐结果，包含权重和行动建议
-    """
-    # 定义各年龄段的推荐权重规则
-    if age <= 12:
-        weights = {
-            '家庭': 0.5,
-            '健康': 0.3,
-            '学习': 0.2,
-            '社交': 0.1
-        }
-        actions = [
-            "多陪伴家人，建立安全感",
-            "培养良好的作息和饮食习惯",
-            "鼓励探索感兴趣的事物，激发好奇心"
-        ]
-    elif age <= 19:
-        weights = {
-            '学习': 0.4,
-            '健康': 0.3,
-            '社交': 0.2,
-            '家庭': 0.1
-        }
-        actions = [
-            "制定合理的学习计划，平衡学业与休息",
-            "加强体育锻炼，保持身体健康",
-            "积极参与社交活动，拓展人际关系"
-        ]
-    elif age <= 35:
-        weights = {
-            '学习': 0.3,
-            '职业发展': 0.3,
-            '健康': 0.2,
-            '社交': 0.15,
-            '家庭': 0.05
-        }
-        actions = [
-            "持续学习新技能，提升职场竞争力",
-            "保持工作与生活的平衡",
-            "建立稳定的人际关系网络"
-        ]
-    elif age <= 50:
-        weights = {
-            '职业发展': 0.3,
-            '家庭': 0.3,
-            '健康': 0.2,
-            '财务规划': 0.15,
-            '社交': 0.05
-        }
-        actions = [
-            "关注职业发展的长期规划",
-            "重视家庭关系的维护与沟通",
-            "定期体检，关注身体健康"
-        ]
-    elif age <= 65:
-        weights = {
-            '家庭': 0.4,
-            '健康': 0.3,
-            '休闲娱乐': 0.2,
-            '财务规划': 0.1
-        }
-        actions = [
-            "享受家庭生活，传承家族文化",
-            "注重健康管理，预防慢性疾病",
-            "发展兴趣爱好，丰富退休生活"
-        ]
-    else:
-        weights = {
-            '家庭': 0.5,
-            '健康': 0.3,
-            '心理慰藉': 0.2
-        }
-        actions = [
-            "珍惜与家人的相处时光",
-            "保持适度的身体活动",
-            "记录人生感悟，留下精神财富"
-        ]
-
-    # 过滤掉不在价值目标列表中的目标
-    filtered_weights = {k: v for k, v in weights.items() if not value_goals or k in value_goals}
-
-    # 如果过滤后为空，使用默认权重
-    if not filtered_weights:
-        filtered_weights = {
-            '家庭': 0.4,
-            '健康': 0.3,
-            '学习': 0.2,
-            '社交': 0.1
-        }
-        actions = [
-            "多陪伴家人，建立安全感",
-            "培养良好的作息和饮食习惯",
-            "鼓励探索感兴趣的事物，激发好奇心"
-        ]
-
-    return {
-        'weights': filtered_weights,
-        'actions': actions
-    }
-
-
-def recommend_actions_by_age(age, value_goals):
-    """
     根据年龄推荐价值目标的优先级和具体行动建议。
     
     参数:
@@ -512,6 +403,15 @@ def recommend_actions_by_age(age, value_goals):
         'weights': weights,
         'actions': actions
     }
+
+
+def visualize_life_meaning(data, cumulative_data, data_by_goal):
+    """可视化人生意义数据."""
+    # 示例实现：打印数据
+    print("Visualizing life meaning data:")
+    print(f"Data: {data}")
+    print(f"Cumulative Data: {cumulative_data}")
+    print(f"Data by Goal: {data_by_goal}")
 
 # 示例调用
 value_goals = ['家庭', '健康', '学习', '社交', '成长', '职业', '社会责任', '精神追求']
@@ -620,6 +520,9 @@ if __name__ == "__main__":
     print("累计人生意义数据:", cumulative_life_meaning_data)
     print("每个价值目标的人生意义贡献:", life_meaning_by_goal)
     print("每个价值目标的累计人生意义贡献:", cumulative_life_meaning_by_goal)
+
+    # 调用可视化函数
+    visualize_life_meaning(life_meaning_data, cumulative_life_meaning_data, life_meaning_by_goal)
 
     # 生成用于D3.js可视化的数据结构
     output_data = {
