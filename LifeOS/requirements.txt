@@ -1,0 +1,6 @@
+flask
+flask-sqlalchemy
+pydantic
+plotly
+matplotlib
+seaborn
