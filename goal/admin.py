@@ -21,5 +21,5 @@ admin.site.register(ActionPlan)
 admin.site.register(Lifemeaning)
 admin.site.register(CumulativeLifemeaning)
 
-admin.site.site_header = '创新演化社区(IEC)'
+admin.site.site_header = '人生意义管理系统'
 
