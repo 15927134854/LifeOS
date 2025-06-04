@@ -372,8 +372,8 @@ class CumulativeLifemeaning(models.Model):
     created_at = models.DateTimeField(default=timezone.now, verbose_name="记录时间")
     action_plan = models.ForeignKey('ActionPlan', on_delete=models.CASCADE, null=True, blank=True)
     value_system_priority = models.ForeignKey(
-        'ValueSystemPriority',  # 假设目标模型名
-        on_delete=models.CASCADE,  # 或者 SET_NULL 等
+        'ValueSystemPriority',
+        on_delete=models.CASCADE,
         related_name='cumulative_lifemeanings'
     )
     cumulative_life_meaning = models.FloatField(null=True, blank=True, verbose_name="累计人生意义数值")
@@ -419,12 +419,12 @@ class CumulativeLifemeaning(models.Model):
             super().save(*args, **kwargs)
 
     def calculate_cumulative_life_meaning(self):
-        # 假设 value_system_priority 是另一个模型实例，其拥有 decay_factors 字段
-        # 修改前: self.value_system_priority.decay_factors
         if not hasattr(self, 'life_meaning_history'):
             self.life_meaning_history = []
             
         n = len(self.life_meaning_history)
         
-        # 示例修正：如果 decay_factors 存在于当前模型自身上
-        decay_factors = list(self.decay_factors[:n]) if hasattr(self, 'decay_factors') else []
+        if self.value_system_priority:
+            decay_factors = list(self.value_system_priority.decay_factors[:n])
+        else:
+            decay_factors = list(self.decay_factors[:n]) if hasattr(self, 'decay_factors') else []
