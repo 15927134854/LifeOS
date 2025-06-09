@@ -128,6 +128,12 @@
             <div id="cumulative-value-goal-pie-legend" class="pie-legend"></div>
             <p>各价值目标在整个生命周期的累计意义贡献占比</p>
         </section>
+        <section class="chart-container" aria-label="分类行动数据">
+            <h2>分类行动数据</h2>
+            <svg id="action-category-chart"></svg>
+            <div id="action-category-legend" class="pie-legend"></div>
+            <p id="action-category-description">正在展示各分类下的具体行动数据</p>
+        </section>
         <section>
             <h2>生命周期阶段</h2>
             <div id="lifespan-stages"><p>数据加载中...</p></div>
@@ -135,6 +141,10 @@
         <section>
             <h2>推荐信息</h2>
             <div id="recommendation-info"><p>数据加载中...</p></div>
+        </section>
+        <section>
+            <h2>具体行动建议</h2>
+            <div id="action-recommendations"><p>数据加载中...</p></div>
         </section>
         <!-- 全局tooltip -->
         <div id="global-tooltip" class="tooltip"></div>
@@ -154,6 +164,9 @@
         const goalColors = d3.scaleOrdinal()
             .domain(["健康", "家庭", "事业", "成长", "财富", "兴趣", "社会", "其他"])
             .range(d3.schemeSet2);
+
+        // 新增的分类行动数据颜色映射
+        const categoryActionColors = d3.scaleOrdinal(d3.schemeCategory10);
 
         window.onload = function() {
             fetch('goal/simulation_output.json')
@@ -198,12 +211,35 @@
                             }
                         });
                     }
+                    
+                    // 新增：提取元行动分类数据
+                    let actionCategoryData = [];
+                    if (data.life_meaning_by_goal && Array.isArray(data.life_meaning_by_goal)) {
+                        // 使用已有的life_meaning_by_goal数据
+                        actionCategoryData = data.life_meaning_by_goal;
+                    } else {
+                        // 如果没有现成的数据，创建示例数据
+                        const sampleActionData = {};
+                        if (data.life_meaning_by_goal && typeof data.life_meaning_by_goal === 'object') {
+                            Object.keys(data.life_meaning_by_goal).forEach(key => {
+                                // 过滤掉非行动相关的键
+                                if (key.includes('行动') || key.includes('action') || key.includes('Activity')) {
+                                    sampleActionData[key] = data.life_meaning_by_goal[key];
+                                }
+                            });
+                        }
+                        if (Object.keys(sampleActionData).length > 0) {
+                            actionCategoryData.push(sampleActionData);
+                        }
+                    }
+                    
                     window.visualizationData = {
                         lifeMeaningData,
                         cumulativeLifeMeaningData,
                         lifeMeaningByGoal,
                         cumulativeLifeMeaningByGoal,
-                        lifespanStages
+                        lifespanStages,
+                        actionCategoryData  // 添加分类行动数据到全局变量
                     };
                     initializeCharts();
                 })
@@ -219,6 +255,7 @@
             }
             const pieData = generatePieData();
             const cumulativePieData = generateCumulativePieData();
+            const actionCategoryPieData = generateActionCategoryPieData();  // 新增分类行动数据
             drawLineChart('#life-meaning-trend', window.visualizationData.lifeMeaningData, '人生意义趋势');
             drawLineChart('#cumulative-life-meaning-trend', window.visualizationData.cumulativeLifeMeaningData, '累计人生意义趋势');
             if (window.visualizationData.lifeMeaningByGoal && window.visualizationData.lifeMeaningByGoal.length > 0) {
@@ -242,8 +279,16 @@
                 document.getElementById('cumulative-value-goal-pie-chart').style.display = 'none';
                 document.getElementById('cumulative-value-goal-pie-legend').innerHTML = '';
             }
+            // 新增：绘制分类行动数据饼图
+            if (actionCategoryPieData && actionCategoryPieData.length > 0) {
+                drawPieChart('#action-category-chart', actionCategoryPieData, '各分类下的具体行动数据', '#action-category-legend');
+            } else {
+                document.getElementById('action-category-chart').style.display = 'none';
+                document.getElementById('action-category-legend').innerHTML = '';
+            }
             displayLifespanStages();
             addRecommendationInfo();
+            addActionRecommendations();  // 新增具体行动建议
         }
 
         function drawLineChart(selector, data, title) {
@@ -526,6 +571,30 @@
             return [];
         }
 
+        // 新增生成分类行动数据饼图函数
+        function generateActionCategoryPieData() {
+            if (!window.visualizationData || !window.visualizationData.actionCategoryData || window.visualizationData.actionCategoryData.length === 0) {
+                return [];
+            }
+            
+            // 获取最新周期的数据
+            const latestActionCategoryData = Array.isArray(window.visualizationData.actionCategoryData) ?
+                window.visualizationData.actionCategoryData[window.visualizationData.actionCategoryData.length - 1] :
+                window.visualizationData.actionCategoryData;
+            
+            if (typeof latestActionCategoryData === 'object' && !Array.isArray(latestActionCategoryData)) {
+                // 筛选包含“行动”关键词的字段
+                return Object.entries(latestActionCategoryData)
+                    .filter(([name, value]) => {
+                        // 只选择包含“行动”的字段且值大于0的数据
+                        return (name.includes('行动') || name.includes('action') || name.includes('Activity')) &&
+                               typeof value === 'number' && !isNaN(value) && value > 0;
+                    })
+                    .map(([name, value]) => ({ name, value }));
+            }
+            return [];
+        }
+
         function displayLifespanStages() {
             const stageContainer = document.getElementById('lifespan-stages');
             if (!stageContainer) return;
@@ -686,6 +755,120 @@
             }
             recommendationContainer.appendChild(recommendationList);
         }
+        
+        // 在现有drawPieChart函数后添加新增内容
+        function addActionRecommendations() {
+            const actionRecommendationContainer = document.getElementById('action-recommendations');
+            if (!actionRecommendationContainer) return;
+            actionRecommendationContainer.innerHTML = '';
+            
+            if (!window.visualizationData || !window.visualizationData.actionCategoryData || window.visualizationData.actionCategoryData.length === 0) {
+                const noData = document.createElement('p');
+                noData.textContent = '暂无行动数据可供推荐';
+                noData.style.color = '#666';
+                noData.style.fontStyle = 'italic';
+                actionRecommendationContainer.appendChild(noData);
+                return;
+            }
+            
+            const latestActionCategoryData = window.visualizationData.actionCategoryData[window.visualizationData.actionCategoryData.length - 1];
+            if (typeof latestActionCategoryData !== 'object' || Array.isArray(latestActionCategoryData)) {
+                const invalidData = document.createElement('p');
+                invalidData.textContent = '行动数据格式错误';
+                invalidData.style.color = '#666';
+                invalidData.style.fontStyle = 'italic';
+                actionRecommendationContainer.appendChild(invalidData);
+                return;
+            }
+            
+            let currentStage = null;
+            const currentAge = 30; // 可根据实际需求动态获取
+            if (window.visualizationData.lifespanStages && Array.isArray(window.visualizationData.lifespanStages)) {
+                for (const stage of window.visualizationData.lifespanStages) {
+                    if (typeof stage === 'object') {
+                        let startAge = stage.start_age || stage.min_age || 0;
+                        let endAge = stage.end_age || stage.max_age || 0;
+                        if (currentAge >= startAge && currentAge <= endAge) {
+                            currentStage = stage;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            const recommendations = [];
+            const sortedActions = Object.entries(latestActionCategoryData)
+                .filter(([action, value]) => value > 0.001)
+                .sort((a, b) => b[1] - a[1]);
+            
+            for (let i = 0; i < Math.min(3, sortedActions.length); i++) {
+                const [action, value] = sortedActions[i];
+                recommendations.push({
+                    title: `${action}`,
+                    description: `建议继续加强对${action}这一行动的关注，因为数据显示它对您具有较高的意义值。`
+                });
+            }
+            
+            if (currentStage && typeof currentStage === 'object') {
+                const stageName = currentStage.stage_name || '未知阶段';
+                if (stageName === '青年期') {
+                    recommendations.push({
+                        title: '职业发展相关行动',
+                        description: '建议加强职业技能学习、参与更多项目实践，并积极拓展行业人脉资源。'
+                    });
+                    recommendations.push({
+                        title: '个人成长相关行动',
+                        description: '建议制定系统的学习计划，定期进行技能评估，并参与跨部门协作项目提升综合能力。'
+                    });
+                } else if (stageName === '中年期') {
+                    recommendations.push({
+                        title: '财务管理相关行动',
+                        description: '建议建立完善的家庭财务规划，包括资产配置优化、风险管理和退休金储备等。'
+                    });
+                    recommendations.push({
+                        title: '健康管理相关行动',
+                        description: '建议定期进行全面体检，保持规律运动，并注意工作与生活的平衡。'
+                    });
+                } else if (stageName === '老年期') {
+                    recommendations.push({
+                        title: '生活质量提升行动',
+                        description: '建议培养有益身心的兴趣爱好，适度参与社交活动，享受充实的退休生活。'
+                    });
+                    recommendations.push({
+                        title: '经验传承行动',
+                        description: '建议通过指导年轻人、参与社区教育等方式分享您的宝贵经验和知识。'
+                    });
+                }
+            }
+            
+            if (recommendations.length === 0) {
+                const noRecommendation = document.createElement('p');
+                noRecommendation.textContent = '暂无符合条件的行动建议';
+                noRecommendation.style.color = '#666';
+                noRecommendation.style.fontStyle = 'italic';
+                actionRecommendationContainer.appendChild(noRecommendation);
+                return;
+            }
+            
+            const recommendationList = document.createElement('ul');
+            recommendationList.style.listStyleType = 'none';
+            recommendationList.style.paddingLeft = '0';
+            for (const rec of recommendations) {
+                const listItem = document.createElement('li');
+                listItem.style.margin = '8px 0';
+                const recTitle = document.createElement('strong');
+                recTitle.textContent = rec.title;
+                recTitle.style.display = 'block';
+                recTitle.style.marginBottom = '4px';
+                const recDescription = document.createElement('span');
+                recDescription.textContent = rec.description;
+                listItem.appendChild(recTitle);
+                listItem.appendChild(recDescription);
+                recommendationList.appendChild(listItem);
+            }
+            actionRecommendationContainer.appendChild(recommendationList);
+        }
+        
     </script>
 </body>
 </html>
