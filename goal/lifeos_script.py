@@ -41,7 +41,7 @@ except json.JSONDecodeError as e:
 from django.utils import timezone
 from goal.models import (
     ValueGoalCategory, ValueGoal, ValueSystemPriority, ValueGoalWeight,
-    MetaAction,
+    MetaAction, MetaActionCategory,  # 添加MetaActionCategory导入
     MetaActionCausationValueGoal,
     Action, ActionPlan, Lifemeaning, CumulativeLifemeaning
 )
@@ -139,7 +139,22 @@ def build_meta_actions(values_data, value_goals):
 
     for big_category in values_data['ValueSystemData']:
         for small_category in big_category['小类']:
+            # 创建MetaActionCategory分类
+            category_obj, created = MetaActionCategory.objects.get_or_create(
+                name=small_category['小类'],
+                defaults={'parent': None, 'root': False}
+            )
+            
             for category in small_category['类目']:
+                # 创建更具体的MetaActionCategory分类
+                sub_category_obj, sub_created = MetaActionCategory.objects.get_or_create(
+                    name=category['类目'],
+                    defaults={'parent': category_obj, 'root': False}
+                )
+                
+                # 设置父子关系（已包含在get_or_create中）
+                # 无需单独保存，因为get_or_create已经处理了父节点关系
+
                 action_examples = category['行动示例'].split('，')
 
                 for action_example in action_examples:
@@ -149,6 +164,11 @@ def build_meta_actions(values_data, value_goals):
                         content=action_example.strip(),
                         pv=pv
                     )
+                    
+                    # 将meta_action关联到对应的分类
+                    meta_action.category = sub_category_obj
+                    meta_action.save()
+                    
                     value_goal = next((vg for vg in value_goals if vg.name == category['类目']), None)
                     if value_goal:
                         causation = MetaActionCausationValueGoal.objects.create(
