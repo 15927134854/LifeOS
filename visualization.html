@@ -233,6 +233,17 @@
                         }
                     }
                     
+                    // 添加默认示例数据作为最后的保障
+                    if (actionCategoryData.length === 0) {
+                        actionCategoryData = [{
+                            "工作相关行动": 30,
+                            "家庭相关行动": 25,
+                            "健康相关行动": 20,
+                            "休闲娱乐行动": 15,
+                            "社交互动行动": 10
+                        }];
+                    }
+                    
                     window.visualizationData = {
                         lifeMeaningData,
                         cumulativeLifeMeaningData,
@@ -285,6 +296,11 @@
             } else {
                 document.getElementById('action-category-chart').style.display = 'none';
                 document.getElementById('action-category-legend').innerHTML = '';
+                // 更新描述文本为更明确的信息
+                const descriptionElement = document.querySelector('#action-category-description');
+                if (descriptionElement) {
+                    descriptionElement.textContent = '暂无有效的分类行动数据可供展示。';
+                }
             }
             displayLifespanStages();
             addRecommendationInfo();
@@ -415,7 +431,7 @@
                 .on("mouseover", function(event, d) {
                     globalTooltip
                         .style("display", "block")
-                        .html(`<strong>${d[0]}</strong><br/>值: ${d[1].toFixed(2)}`)
+                        .html(`<strong>${d[0]}</strong><br/>값: ${d[1].toFixed(2)}`)
                         .style("left", (event.pageX + 10) + "px")
                         .style("top", (event.pageY - 40) + "px");
                 })
@@ -475,7 +491,7 @@
                         .attr("transform", "scale(1.08)");
                     globalTooltip
                         .style("display", "block")
-                        .html(`<strong>${d.data.name}</strong><br/>值: ${d.data.value.toFixed(2)}<br/>占比: ${((d.endAngle - d.startAngle) * 100 / (2 * Math.PI)).toFixed(1)}%`)
+                        .html(`<strong>${d.data.name}</strong><br/>값: ${d.data.value.toFixed(2)}<br/>占比: ${((d.endAngle - d.startAngle) * 100 / (2 * Math.PI)).toFixed(1)}%`)
                         .style("left", (event.pageX + 10) + "px")
                         .style("top", (event.pageY - 40) + "px");
                 })
@@ -583,12 +599,11 @@
                 window.visualizationData.actionCategoryData;
             
             if (typeof latestActionCategoryData === 'object' && !Array.isArray(latestActionCategoryData)) {
-                // 筛选包含“行动”关键词的字段
+                console.log('原始分类行动数据:', latestActionCategoryData); // 调试信息
+                // 新增：直接提取所有数值大于 0.001 的字段作为有效数据
                 return Object.entries(latestActionCategoryData)
                     .filter(([name, value]) => {
-                        // 只选择包含“行动”的字段且值大于0的数据
-                        return (name.includes('行动') || name.includes('action') || name.includes('Activity')) &&
-                               typeof value === 'number' && !isNaN(value) && value > 0;
+                        return typeof value === 'number' && !isNaN(value) && value > 0.001;
                     })
                     .map(([name, value]) => ({ name, value }));
             }

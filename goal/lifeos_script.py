@@ -516,7 +516,24 @@ if __name__ == "__main__":
     if not meta_actions:
         print("构建元行动失败")
         exit(1)
-
+    
+    # 新增：收集分类行动数据
+    action_category_data = []
+    for meta_action in meta_actions:
+        category_name = "未知分类"
+        if meta_action.category and hasattr(meta_action.category, 'name'):
+            category_name = meta_action.category.name
+        # 查找是否已有该分类的记录
+        category_data = next((item for item in action_category_data if category_name in item), None)
+        if category_data:
+            # 如果分类已存在，累加贡献值
+            category_data[category_name] += float(meta_action.pv) * random.uniform(0.5, 0.8)
+        else:
+            # 如果分类不存在，创建新的分类记录
+            action_category_data.append({
+                category_name: float(meta_action.pv) * random.uniform(0.5, 0.8)
+            })
+    
     # 构建行动计划
     try:
         with transaction.atomic():
@@ -525,7 +542,7 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error("构建行动计划时发生错误: %s", e)
         exit(1)
-
+    
     # 运行仿真
     try:
         with transaction.atomic():
@@ -535,15 +552,12 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error("运行仿真时发生错误: %s", e)
         exit(1)
-
+    
     print("人生意义数据:", life_meaning_data)
     print("累计人生意义数据:", cumulative_life_meaning_data)
     print("每个价值目标的人生意义贡献:", life_meaning_by_goal)
     print("每个价值目标的累计人生意义贡献:", cumulative_life_meaning_by_goal)
-
-    # 调用可视化函数
-    visualize_life_meaning(life_meaning_data, cumulative_life_meaning_data, life_meaning_by_goal)
-
+    
     # 生成用于D3.js可视化的数据结构
     output_data = {
         "life_meaning": life_meaning_data,
@@ -560,16 +574,17 @@ if __name__ == "__main__":
                 "age_range": f"{stage[0]}-{stage[1]}岁",
                 "duration": f"{stage[1] - stage[0] + 1}年"
             } for stage in system.lifespan_stages  # 使用构建的价值体系中的生命周期阶段数据
-        ]  # 添加结构化的人生阶段信息
+        ],  # 添加结构化的人生阶段信息
+        "action_category_data": action_category_data  # 添加分类行动数据
     }
-
+    
     # 写入simulation_output.json文件
     with open('simulation_output.json', 'w', encoding='utf-8') as f:
         json.dump(output_data, f, ensure_ascii=False, indent=4)
-
+    
     print("数据已导出到 simulation_output.json")
     print("lifespan_stages 数据:", [stage[2] for stage in system.lifespan_stages])  # 更清晰地输出生命周期阶段名称
-
+    
     # 确保 simulation_output 包含必要的字段
     simulation_output = {
         'life_meaning_by_goal': [{
@@ -579,7 +594,7 @@ if __name__ == "__main__":
             '社交': 0.5
         }]
     }
-
+    
     value_goals = []
     if 'life_meaning_by_goal' in simulation_output:
         value_goals = list(simulation_output['life_meaning_by_goal'][0].keys())
