@@ -181,8 +181,11 @@
                     console.log('成功解析JSON数据:', data); // 添加调试信息
                     if (data && data.life_meaning_by_goal) {
                         console.log('找到 life_meaning_by_goal 数据:', data.life_meaning_by_goal); // 添加调试信息
+                        // 确保 latestGoalData 在作用域中定义
+                        window.latestGoalData = data.life_meaning_by_goal[0]; // 使用 window 全局作用域
                     } else {
                         console.warn('未找到 life_meaning_by_goal 数据'); // 添加调试信息
+                        window.latestGoalData = null;
                     }
                     // 解析数据
                     const lifeMeaningData = data.life_meaning || [];
@@ -430,7 +433,7 @@
                 .attr("transform", "rotate(-45)");
             svg.append("g")
                 .attr("class", "axis")
-                .call(d3.axisLeft(y).tickFormat(d => `${d}意义값`));
+                .call(d3.axisLeft(y).tickFormat(d => `${d}의미값`));
             svg.append("g")
                 .attr("class", "grid")
                 .call(d3.axisLeft(y).tickSize(-width).tickFormat(""));
