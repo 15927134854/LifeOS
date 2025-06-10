@@ -169,12 +169,21 @@
         const categoryActionColors = d3.scaleOrdinal(d3.schemeCategory10);
 
         window.onload = function() {
-            fetch('goal/simulation_output.json')
+            fetch('simulation_output.json')
                 .then(response => {
-                    if (!response.ok) throw new Error(`网络响应异常: ${response.statusText}`);
+                    if (!response.ok) {
+                        throw new Error(`网络响应异常: ${response.statusText}`);
+                    }
+                    console.log('成功收到响应:', response); // 添加调试信息
                     return response.json();
                 })
                 .then(data => {
+                    console.log('成功解析JSON数据:', data); // 添加调试信息
+                    if (data && data.life_meaning_by_goal) {
+                        console.log('找到 life_meaning_by_goal 数据:', data.life_meaning_by_goal); // 添加调试信息
+                    } else {
+                        console.warn('未找到 life_meaning_by_goal 数据'); // 添加调试信息
+                    }
                     // 解析数据
                     const lifeMeaningData = data.life_meaning || [];
                     const cumulativeLifeMeaningData = data.cumulative_life_meaning || [];
@@ -222,8 +231,10 @@
                         const sampleActionData = {};
                         if (data.life_meaning_by_goal && typeof data.life_meaning_by_goal === 'object') {
                             Object.keys(data.life_meaning_by_goal).forEach(key => {
-                                // 过滤掉非行动相关的键
-                                if (key.includes('行动') || key.includes('action') || key.includes('Activity')) {
+                                // 放宽过滤条件，匹配更多潜在的行动相关键
+                                if (key.includes('行动') || key.includes('action') || key.includes('Activity') || 
+                                    key.includes('目标') || key.includes('goal') || key.includes('Goal') ||
+                                    key.includes('计划') || key.includes('plan') || key.includes('Plan')) {
                                     sampleActionData[key] = data.life_meaning_by_goal[key];
                                 }
                             });
@@ -293,6 +304,8 @@
             // 新增：绘制分类行动数据饼图
             if (actionCategoryPieData && actionCategoryPieData.length > 0) {
                 drawPieChart('#action-category-chart', actionCategoryPieData, '各分类下的具体行动数据', '#action-category-legend');
+                // 新增调试信息输出
+                console.log('成功生成分类行动数据:', actionCategoryPieData);
             } else {
                 document.getElementById('action-category-chart').style.display = 'none';
                 document.getElementById('action-category-legend').innerHTML = '';
@@ -301,6 +314,8 @@
                 if (descriptionElement) {
                     descriptionElement.textContent = '暂无有效的分类行动数据可供展示。';
                 }
+                // 新增空数据时的提示信息
+                console.warn('未找到有效的分类行动数据');
             }
             displayLifespanStages();
             addRecommendationInfo();
@@ -352,7 +367,7 @@
                 .on("mouseover", function(event, d, i) {
                     globalTooltip
                         .style("display", "block")
-                        .html(`<strong>周期: ${data.indexOf(d)+1}</strong><br/>值: ${d.toFixed(2)}`)
+                        .html(`<strong>周期: ${data.indexOf(d)+1}</strong><br/>값: ${d.toFixed(2)}`)
                         .style("left", (event.pageX + 10) + "px")
                         .style("top", (event.pageY - 40) + "px");
                 })
@@ -415,7 +430,7 @@
                 .attr("transform", "rotate(-45)");
             svg.append("g")
                 .attr("class", "axis")
-                .call(d3.axisLeft(y).tickFormat(d => `${d}意义值`));
+                .call(d3.axisLeft(y).tickFormat(d => `${d}意义값`));
             svg.append("g")
                 .attr("class", "grid")
                 .call(d3.axisLeft(y).tickSize(-width).tickFormat(""));
@@ -883,6 +898,99 @@
             }
             actionRecommendationContainer.appendChild(recommendationList);
         }
+        
+        // 新增总结与建议部分
+        const mainContainer = document.querySelector('main');
+        if (!mainContainer) {
+            console.warn('未找到 main 容器，无法添加总结部分');
+            // return; // 移除非法的 return 语句
+            // 用注释代替或者进行默认处理
+        }
+        
+        const summaryContainer = document.createElement('section');
+        summaryContainer.className = 'chart-container';
+        summaryContainer.setAttribute('aria-label', '生命周期目标实现总结与建议');
+        
+        const summaryTitle = document.createElement('h2');
+        summaryTitle.textContent = '生命周期目标实现总结与建议';
+        summaryContainer.appendChild(summaryTitle);
+        
+        const summaryText = document.createElement('p');
+        summaryText.id = 'life-cycle-summary';
+        summaryText.style.fontSize = '16px';
+        summaryText.style.lineHeight = '1.6';
+        summaryText.textContent = '根据当前数据，您在以下方面取得了显著进展：';
+        summaryContainer.appendChild(summaryText);
+        
+        const summaryList = document.createElement('ul');
+        summaryList.style.listStyleType = 'disc';
+        summaryList.style.paddingLeft = '20px';
+        
+        // 提取最重要的几个价值目标作为总结内容
+        const topGoals = Object.entries(latestGoalData)
+            .filter(([goal, value]) => value > 0.5) // 筛选较高权重的目标
+            .sort((a, b) => b[1] - a[1]);
+        
+        if (topGoals.length > 0) {
+            for (let i = 0; i < Math.min(5, topGoals.length); i++) {
+                const [goal, value] = topGoals[i];
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `<strong>${goal}</strong>: 权重 ${(value * 100).toFixed(1)}%，建议继续保持并深化投入。`;
+                summaryList.appendChild(listItem);
+            }
+        } else {
+            const noSummaryItem = document.createElement('li');
+            noSummaryItem.textContent = '暂无显著目标进展数据，请继续努力或检查数据输入是否准确。';
+            summaryList.appendChild(noSummaryItem);
+        }
+        
+        const recommendationText = document.createElement('p');
+        recommendationText.style.marginTop = '20px';
+        recommendationText.style.fontWeight = 'bold';
+        recommendationText.textContent = '下一步具体行动建议：';
+        summaryContainer.appendChild(recommendationText);
+        
+        const recommendationList = document.createElement('ul');
+        recommendationList.style.listStyleType = 'circle';
+        recommendationList.style.paddingLeft = '20px';
+        
+        // 根据当前阶段生成建议
+        if (currentStage && typeof currentStage === 'object') {
+            const stageName = currentStage.stage_name || '未知阶段';
+            
+            if (stageName === '青年期') {
+                recommendationList.innerHTML = `
+                    <li>加强职业技能学习，参与更多实际项目以积累经验。</li>
+                    <li>拓展人脉资源，积极参与行业交流活动。</li>
+                    <li>建立良好的人际关系网络，为未来的发展打下基础。</li>
+                `;
+            } else if (stageName === '中年期') {
+                recommendationList.innerHTML = `
+                    <li>合理进行财务规划，确保家庭经济稳定。</li>
+                    <li>注重健康管理，定期体检并保持良好生活习惯。</li>
+                    <li>优化时间管理，平衡工作与个人发展。</li>
+                `;
+            } else if (stageName === '老年期') {
+                recommendationList.innerHTML = `
+                    <li>享受退休生活的同时，保持适度的社交活动。</li>
+                    <li>将自己的经验与知识传递给下一代。</li>
+                    <li>关注生活质量提升，培养兴趣爱好。</li>
+                `;
+            }
+        }
+        
+        // 默认通用建议
+        if (recommendationList.children.length === 0) {
+            recommendationList.innerHTML = `
+                <li>持续关注高权重价值目标，如健康、家庭、事业发展等。</li>
+                <li>设定短期可实现的小目标，逐步推进长期愿景。</li>
+                <li>定期回顾和调整目标优先级，确保与人生意义一致。</li>
+            `;
+        }
+        
+        summaryContainer.appendChild(summaryList);
+        summaryContainer.appendChild(recommendationList);
+        mainContainer.appendChild(summaryContainer);
         
     </script>
 </body>

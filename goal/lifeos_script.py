@@ -22,20 +22,20 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "LifeOS.settings")
 django.setup()
 
 
-if not os.path.exists('values.json'):
-    logger.error("当前工作目录: %s", os.getcwd())
-    logger.error("查找的文件路径: %s", os.path.abspath('goal/values.json'))
-    raise FileNotFoundError("values.json 未找到，请确认文件是否存在以及路径是否正确。")
+#if not os.path.exists('values.json'):
+#    logger.error("当前工作目录: %s", os.getcwd())
+#    logger.error("查找的文件路径: %s", os.path.abspath('goal/values.json'))
+#    raise FileNotFoundError("values.json 未找到，请确认文件是否存在以及路径是否正确。")
 
-try:
-    with open('values.json', 'r', encoding='utf-8') as f:
-        data = json.load(f)
-except IOError as e:
-    logger.error("读取 values.json 文件时发生错误: %s", e)
-    raise
-except json.JSONDecodeError as e:
-    logger.error("解析 values.json 文件时发生错误: %s", e)
-    raise
+#try:
+#    with open('values.json', 'r', encoding='utf-8') as f:
+#        data = json.load(f)
+#except IOError as e:
+#    logger.error("读取 values.json 文件时发生错误: %s", e)
+#    raise
+#except json.JSONDecodeError as e:
+#    logger.error("解析 values.json 文件时发生错误: %s", e)
+#    raise
 
 
 from django.utils import timezone
@@ -453,7 +453,9 @@ if __name__ == "__main__":
     # 设置正确的 Django 配置模块路径
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "LifeOS.settings")
     # 将项目根目录添加到 Python 路径
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append(project_root)
+    
     try:
         django.setup()
     except Exception as e:
@@ -479,37 +481,60 @@ if __name__ == "__main__":
 
     # 加载 JSON 数据
     try:
-        with open('values.json', 'r', encoding='utf-8') as f:
+        # 使用绝对路径确保文件能被正确加载
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'values.json')
+        print(f"尝试加载 values.json，路径: {file_path}")  # 添加调试信息
+        
+        # 检查文件是否存在
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"指定路径的 values.json 文件不存在: {file_path}")
+            
+        with open(file_path, 'r', encoding='utf-8') as f:
             values_data = json.load(f)
-    except FileNotFoundError:
-        print("错误: 找不到 values.json 文件")
+        print("成功加载 values.json")  # 添加加载成功提示
+    except FileNotFoundError as e:
+        print(f"错误: 找不到 values.json 文件，查找路径: {file_path}")
+        print(str(e))  # 输出更详细的错误信息
         exit(1)
     except json.JSONDecodeError:
         print("错误: values.json 文件格式不正确")
         exit(1)
 
     # 构建价值目标体系
-    system, value_goals = build_value_system_priority(values_data)  # 修改为接收两个返回值
-    if not system:
-        print("构建价值目标体系失败")
+    print("开始构建价值目标体系...")
+    value_system_priority, value_goals = build_value_system_priority(values_data)
+    if value_system_priority and value_goals:
+        print("价值目标体系构建成功")
+        
+        # 打印系统信息用于调试
+        print("value_system_priority:", value_system_priority)
+        print("value_goals:", value_goals)
+        
+        # 将 value_system_priority 赋值给 system 变量
+        system = value_system_priority
+        
+        # 创建生命周期阶段
+        print("创建生命周期阶段...")
+        if hasattr(system, 'lifespan_stages') and system.lifespan_stages:
+            life_stages = system.lifespan_stages
+            print(f"使用系统已有的生命周期阶段: {system.lifespan_stages}")
+        else:
+            life_stages = [
+                (0, 5, "婴幼儿期"),
+                (6, 12, "童年期"),
+                (13, 19, "青少年期"),
+                (20, 35, "青年期"),
+                (36, 50, "中年期"),
+                (51, 65, "壮年期"),
+                (66, 80, "老年期")
+            ]
+            # 将生命周期阶段保存到系统中
+            system.lifespan_stages = life_stages
+            system.save()
+            print("生命周期阶段创建成功")
+    else:
+        print("价值目标体系构建失败")
         exit(1)
-
-    # 确保 system.lifespan_stages 被正确初始化
-    if not system.lifespan_stages:
-        # 如果 lifespan_stages 为空，使用默认生命周期阶段
-        system.lifespan_stages = [
-            (0, 5, "婴幼儿期"),
-            (6, 12, "童年期"),
-            (13, 19, "青少年期"),
-            (20, 35, "青年期"),
-            (36, 50, "中年期"),
-            (51, 65, "壮年期"),
-            (66, 80, "老年期")
-        ]
-        system.save()  # 保存更新后的 system 实例
-
-    # 将 system 赋值给 value_system_priority 变量
-    value_system_priority = system
 
     # 构建元行动
     meta_actions = build_meta_actions(values_data, value_goals)
@@ -523,15 +548,23 @@ if __name__ == "__main__":
         category_name = "未知分类"
         if meta_action.category and hasattr(meta_action.category, 'name'):
             category_name = meta_action.category.name
+            
+        # 计算当前元行动的贡献值
+        contribution = float(meta_action.pv) * random.uniform(0.5, 0.8)
+        
         # 查找是否已有该分类的记录
-        category_data = next((item for item in action_category_data if category_name in item), None)
-        if category_data:
-            # 如果分类已存在，累加贡献值
-            category_data[category_name] += float(meta_action.pv) * random.uniform(0.5, 0.8)
-        else:
+        category_found = False
+        for item in action_category_data:
+            if category_name in item:
+                # 如果分类已存在，累加贡献值
+                item[category_name] += contribution
+                category_found = True
+                break
+                
+        if not category_found:
             # 如果分类不存在，创建新的分类记录
             action_category_data.append({
-                category_name: float(meta_action.pv) * random.uniform(0.5, 0.8)
+                category_name: contribution
             })
     
     # 构建行动计划
@@ -581,9 +614,28 @@ if __name__ == "__main__":
     # 写入simulation_output.json文件
     with open('simulation_output.json', 'w', encoding='utf-8') as f:
         json.dump(output_data, f, ensure_ascii=False, indent=4)
+        
+    # 验证分类行动数据是否生成成功
+    logger.info(f"生成了 {len(action_category_data)} 个分类的行动数据")
+    for category in action_category_data:
+        logger.info(f"分类行动数据: {category}")
     
     print("数据已导出到 simulation_output.json")
     print("lifespan_stages 数据:", [stage[2] for stage in system.lifespan_stages])  # 更清晰地输出生命周期阶段名称
+    
+    # 生成可视化数据
+    print("\n--- 可视化数据 ---")
+    print(f"life_stages 数据: {life_stages}")
+    
+    # 创建 action_data_by_goal 数据结构
+    action_data_by_goal = {}
+    for goal in value_goals:
+        if isinstance(goal, ValueGoal):
+            if hasattr(goal, 'priority'):
+                action_data_by_goal[goal.name] = goal.priority
+            else:
+                print(f"Warning: ValueGoal '{goal.name}' has no 'priority' attribute")
+    print(f"action_data_by_goal 数据: {action_data_by_goal}")
     
     # 确保 simulation_output 包含必要的字段
     simulation_output = {
@@ -594,22 +646,3 @@ if __name__ == "__main__":
             '社交': 0.5
         }]
     }
-    
-    value_goals = []
-    if 'life_meaning_by_goal' in simulation_output:
-        value_goals = list(simulation_output['life_meaning_by_goal'][0].keys())
-    else:
-        value_goals = []  # 或者根据需求进行默认赋值
-
-    # 获取当前年龄（示例）
-    current_age = 28  # 可从用户输入或数据源读取
-
-    # 获取推荐
-    recommendation = recommend_actions_by_age(current_age, value_goals)
-    print(f"\\n--- {current_age} 岁 行动建议 ---")
-    print("推荐价值目标权重:")
-    for goal, weight in recommendation['weights'].items():
-        print(f"- {goal}: {weight * 100:.0f}%")
-    print("\n具体行动建议:")
-    for action in recommendation['actions']:
-        print(f"- {action}")
