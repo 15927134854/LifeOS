@@ -23,3 +23,10 @@ admin.site.register(CumulativeLifemeaning)
 
 admin.site.site_header = '人生意义管理系统'
 
+'''
+超级管理员账号：
+username:lifeos
+password:PILF@9980
+'''
+
+
