@@ -224,23 +224,25 @@ goal/
 ### 总结
 `LifeOS` 项目是一个具有创新性的人生管理软件系统，通过定义各种业务对象和关系，实现了对人生目标、行动和意义的量化管理。项目使用 Django 作为后端框架，结合相关依赖库提供了丰富的功能。
 
+![img_9.png](img_9.png)
 
-# 附：仿真数据可视化分析
-## 服务启动方式
-终端运行如下命令：
-```python
-npx serve D:\运维仿真\LifeOS
-```
+![img_10.png](img_10.png)
 
-## 可视化数据分析及推荐行动建议
+![img_11.png](img_11.png)
 
-![img_8.png](img_8.png)
+![img_12.png](img_12.png)
+
+![img_13.png](img_13.png)
+
+![img_14.png](img_14.png)
+
+![img_15.png](img_15.png)
+
+![img_16.png](img_16.png)
+
+![img_17.png](img_17.png)
 
 
-![img_7.png](img_7.png)
-
-
-![img_6.png](img_6.png)
 
 
 
