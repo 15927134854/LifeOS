@@ -224,24 +224,6 @@ goal/
 ### 总结
 `LifeOS` 项目是一个具有创新性的人生管理软件系统，通过定义各种业务对象和关系，实现了对人生目标、行动和意义的量化管理。项目使用 Django 作为后端框架，结合相关依赖库提供了丰富的功能。使用 D3.js 实现数据可视化，提供了丰富的用户界面。
 
-![img_9.png](img_9.png)
-
-![img_10.png](img_10.png)
-
-![img_11.png](img_11.png)
-
-![img_12.png](img_12.png)
-
-![img_13.png](img_13.png)
-
-![img_14.png](img_14.png)
-
-![img_15.png](img_15.png)
-
-![img_16.png](img_16.png)
-
-![img_17.png](img_17.png)
-
 
 
 
